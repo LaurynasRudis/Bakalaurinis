@@ -1,0 +1,42 @@
+syntax = "proto3";
+option java_multiple_files = true;
+package org.tutorial.search;
+
+message SearchRequest {
+  string query = 1;
+  enum SearchField {
+    LABEL = 0;
+    DEFINITION = 1;
+  }
+  SearchField search_field = 2;
+}
+
+message SearchResponse {
+  repeated Result searchResults = 1;
+}
+
+message Result {
+  string id = 1;
+  string label = 2;
+  string sense = 3;
+  repeated string sense_example = 4;
+  string lemma = 5;
+  repeated string definition = 6;
+}
+
+message IndexRequest {
+  string fileLocation = 1;
+}
+
+message SemanticSearchIndexRequest {
+  string databaseName = 1;
+}
+
+message IndexResponse {
+}
+
+service SearchService {
+  rpc search(SearchRequest) returns (SearchResponse);
+  rpc index(IndexRequest) returns (IndexResponse);
+}
+
