@@ -2,7 +2,7 @@ package client;
 
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
-import org.tutorial.search.*;
+import org.bakalaurinis.search.*;
 
 import javax.annotation.Resource;
 import java.io.BufferedReader;
@@ -28,6 +28,11 @@ public class GrpcClient {
                         .usePlaintext()
                         .build();
 
+        ManagedChannel channel4 =
+                ManagedChannelBuilder.forAddress("localhost", 5543)
+                        .usePlaintext()
+                        .build();
+
         SearchServiceGrpc.SearchServiceBlockingStub stub =
                 SearchServiceGrpc.newBlockingStub(channel);
 
@@ -36,6 +41,9 @@ public class GrpcClient {
 
         SearchServiceGrpc.SearchServiceBlockingStub stub3 =
                 SearchServiceGrpc.newBlockingStub(channel3);
+
+        SearchServiceGrpc.SearchServiceBlockingStub stub4 =
+                SearchServiceGrpc.newBlockingStub(channel4);
 
         FusekiClient fc = new FusekiClient("blkz");
 
@@ -70,10 +78,19 @@ public class GrpcClient {
                 }
                 break;
             case "3":
-                fc.execSelectAndProcess("velnias");
+                SearchResponse sem = stub4.search(SearchRequest.newBuilder()
+                        .setQuery("velnias")
+                        .setSearchField(SearchRequest.SearchField.LABEL)
+                        .build()
+                );
+
+                for (Result s : sem.getSearchResultsList()){
+                    System.out.println();
+                }
+
                 break;
             default:
-                System.out.println(SearchRequest.SearchField.LABEL.toString());
+                System.out.println(SearchRequest.SearchField.LABEL);
 
         }
         channel.shutdown();

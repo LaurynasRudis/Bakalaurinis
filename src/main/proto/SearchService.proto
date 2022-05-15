@@ -1,6 +1,6 @@
 syntax = "proto3";
 option java_multiple_files = true;
-package org.tutorial.search;
+package org.bakalaurinis.search;
 
 message SearchRequest {
   string query = 1;
@@ -22,14 +22,11 @@ message Result {
   repeated string sense_example = 4;
   string lemma = 5;
   repeated string definition = 6;
+  string score = 7;
 }
 
 message IndexRequest {
   string fileLocation = 1;
-}
-
-message SemanticSearchIndexRequest {
-  string databaseName = 1;
 }
 
 message IndexResponse {

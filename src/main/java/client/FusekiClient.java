@@ -1,16 +1,19 @@
 package client;
 
-import org.apache.jena.atlas.iterator.Iter;
-import org.apache.jena.query.Query;
-import org.apache.jena.query.QueryExecution;
-import org.apache.jena.query.QueryFactory;
-import org.apache.jena.query.ResultSet;
+import commons.SearchResult;
+import org.apache.commons.lang.NotImplementedException;
+import org.apache.jena.graph.Node;
+import org.apache.jena.query.*;
+import org.apache.jena.rdf.model.*;
 import org.apache.jena.rdfconnection.RDFConnection;
 import org.apache.jena.rdfconnection.RDFConnectionFuseki;
 import org.apache.jena.rdfconnection.RDFConnectionRemoteBuilder;
+import org.bakalaurinis.search.SearchRequest;
 
 import java.util.*;
-import java.util.Map.Entry;
+
+import static commons.OntologyConstants.*;
+import static commons.SparqlQueryBuilder.*;
 
 
 public class FusekiClient {
@@ -18,22 +21,7 @@ public class FusekiClient {
 
     private final RDFConnection service;
     private final Map<String, String> prefixes = new HashMap<>();
-    private final String sinonimuZodynas = "lmf:Sinonimu_zodynas";
-    private final String zodynas = "lmf:zodynas";
-    private final String hasLemma = "lmf:hasLemma";
-    private final String hasSense = "lmf:hasSense";
-    private final String hasSenseRelation = "lmf:hasSenseRelation";
-    private final String senseRelatedTo = "lmf:senseRelatedTo";
-    private final String label = "rdfs:label";
-    private final String writtenForm = "lmf:writtenForm";
-    private final String hasTextRepresentation = "lmf:hasTextRepresentation";
-    private final String hasDefinition = "lmf:hasDefinition";
-    private final String hasSenseExample = "lmf:hasSenseExample";
-    private final String hasEquivalent = "lmf:hasEquivalent";
-    private final String type = "lmf:type";
-    private final String rdfType = "rdf:type";
-    private final String textQuery = "text:query";
-    private final String lexicalEntry = "lmf:LexicalEntry";
+
 
     private final double directSynonymReduction = 0.5 ;
 
@@ -47,110 +35,72 @@ public class FusekiClient {
         prefixes.put("text", "http://jena.apache.org/text#");
     }
 
-    public void execSelectAndProcess(String query) {
-        searchLabel(query);
-    }
-
-    private String makePrefixString() {
-        StringBuilder prefixesString = new StringBuilder();
-        for(Entry entry: prefixes.entrySet()){
-            prefixesString.append("PREFIX ")
-                    .append(entry.getKey())
-                    .append(": <")
-                    .append(entry.getValue())
-                    .append(">\n");
-        }
-        System.out.println(prefixesString);
-        return prefixesString.toString();
-    }
-
 
     private String searchLabelQuery (String query) {
-        return graph(zodynas,
-                searchQuery("( ?id ?score )", label, query, "") +
-                        triple("?id", rdfType, lexicalEntry) +
-                        triple("?id", label, "?label"));
+        return graph(ZODYNAS,
+                searchQuery("( ?id ?score )", LABEL, query, "") +
+                        triple("?id", RDF_TYPE, LEXICAL_ENTRY) +
+                        triple("?id", LABEL, "?label"));
     }
 
     private String searchLabelWithSynonymsQuery (String query) {
-        return graph(zodynas,
-                searchQuery("( " + "?tempLex" + " " + "?scoreTemp" + " )", label, query, "") +
+        return graph(ZODYNAS,
+                searchQuery("( " + "?tempLex" + " " + "?scoreTemp" + " )", LABEL, query, "") +
                         bind("?scoreTemp - " + directSynonymReduction, "?score") +
-                        triple("?tempLex", rdfType, lexicalEntry) +
-                        triple("?tempLex", label, "?foundLabel") +
-                        graph(sinonimuZodynas,
-                                triple("?sinLex", label, "?foundLabel") +
-                                        triple("?sinLex", synonymPredicate+"/"+label, "?labelTemp")) +
-                        triple("?id", label, "?labelTemp") +
-                        triple("?id", rdfType, lexicalEntry) +
-                        triple("?id", label, "?label")
+                        triple("?tempLex", RDF_TYPE, LEXICAL_ENTRY) +
+                        triple("?tempLex", LABEL, "?foundLabel") +
+                        graph(SINONIMU_ZODYNAS,
+                                triple("?sinLex", LABEL, "?foundLabel") +
+                                        triple("?sinLex", synonymPredicate+"/"+ LABEL, "?labelTemp")) +
+                        triple("?id", LABEL, "?labelTemp") +
+                        triple("?id", RDF_TYPE, LEXICAL_ENTRY) +
+                        triple("?id", LABEL, "?label")
         );
     }
 
     private String searchLabelIsSynonymsQuery (String query) {
-        return graph(zodynas,
-                searchQuery("( " + "?tempLex" + " " + "?scoreTemp" + " )", label, query, "") +
+        return graph(ZODYNAS,
+                searchQuery("( " + "?tempLex" + " " + "?scoreTemp" + " )", LABEL, query, "") +
                         bind("?scoreTemp - " + directSynonymReduction, "?score") +
-                        triple("?tempLex", rdfType, lexicalEntry) +
-                        triple("?tempLex", label, "?label2") +
-                        graph(sinonimuZodynas,
-                                triple("?sinLex", label, "?label2") +
-                                        triple("?sinLex", isSynonymPredicate+"/"+label, "?labelTemp")
+                        triple("?tempLex", RDF_TYPE, LEXICAL_ENTRY) +
+                        triple("?tempLex", LABEL, "?label2") +
+                        graph(SINONIMU_ZODYNAS,
+                                triple("?sinLex", LABEL, "?label2") +
+                                        triple("?sinLex", isSynonymPredicate+"/"+ LABEL, "?labelTemp")
                         ) +
-                        triple("?id", label, "?labelTemp") +
-                        triple("?id", rdfType, lexicalEntry) +
-                        triple("?id", label, "?label"));
+                        triple("?id", LABEL, "?labelTemp") +
+                        triple("?id", RDF_TYPE, LEXICAL_ENTRY) +
+                        triple("?id", LABEL, "?label"));
     }
 
     private String searchSynonyms (String query) {
         double querySynonymReduction = 3;
         return union(
-                graph(sinonimuZodynas,
-                        searchQuery("( " + "?tempId " + "?scoreTemp" + " )", label, query, "") +
+                graph(SINONIMU_ZODYNAS,
+                        searchQuery("( " + "?tempId " + "?scoreTemp" + " )", LABEL, query, "") +
                                 bind("?scoreTemp - " + querySynonymReduction, "?score") +
-                                triple("?tempId", rdfType, lexicalEntry) +
-                                triple("?tempId", label, "?labelTemp2") +
-                                triple("?tempId", synonymPredicate+"/"+label, "?labelTemp")
+                                triple("?tempId", RDF_TYPE, LEXICAL_ENTRY) +
+                                triple("?tempId", LABEL, "?labelTemp2") +
+                                triple("?tempId", synonymPredicate+"/"+ LABEL, "?labelTemp")
                 ),
-                graph(sinonimuZodynas,
-                        searchQuery("( " + "?tempId " + "?scoreTemp" + " )", label, query, "") +
+                graph(SINONIMU_ZODYNAS,
+                        searchQuery("( " + "?tempId " + "?scoreTemp" + " )", LABEL, query, "") +
                                 bind("?scoreTemp - " + querySynonymReduction, "?score") +
-                                triple("?tempId", rdfType, lexicalEntry) +
-                                triple("?tempId", label, "?labelTemp2") +
-                                triple("?tempId", isSynonymPredicate+"/"+label, "?labelTemp") )
+                                triple("?tempId", RDF_TYPE, LEXICAL_ENTRY) +
+                                triple("?tempId", LABEL, "?labelTemp2") +
+                                triple("?tempId", isSynonymPredicate+"/"+ LABEL, "?labelTemp") )
         ) +
-                graph(zodynas,
-                        triple("?id", label, "?labelTemp") +
-                                triple("?id", rdfType, lexicalEntry) +
-                                triple("?id", label, "?label")
+                graph(ZODYNAS,
+                        triple("?id", LABEL, "?labelTemp") +
+                                triple("?id", RDF_TYPE, LEXICAL_ENTRY) +
+                                triple("?id", LABEL, "?label")
                 );
     }
 
-    private String getRelevantInformationFromLexicalEntry() {
-        return optional(triple("?id", combinePredicates(hasSense, hasDefinition, hasTextRepresentation, writtenForm), "?definition")) +
-                optional(triple("?id", combinePredicates(hasSense, hasSenseExample, "lmf:text"), "?senseExample")) +
-                optional(triple("?id", combinePredicates(hasLemma, writtenForm), "?lemma"));
-    }
-
-    private String combinePredicates(String... predicates) {
-        StringBuilder predicate = new StringBuilder();
-        Iterator<String> predicatesIterator = Arrays.stream(predicates).iterator();
-        while (predicatesIterator.hasNext()) {
-            predicate.append(predicatesIterator.next());
-            if(predicatesIterator.hasNext()) predicate.append("/");
-        }
-        return predicate.toString();
-    }
-
-    private String reverseCombinePredicates(String... predicates) {
-        StringBuilder predicate = new StringBuilder();
-        Iterator<String> predicatesIterator = Arrays.stream(predicates).iterator();
-        predicate.append("^");
-        while (predicatesIterator.hasNext()) {
-            predicate.append(predicatesIterator.next());
-            if(predicatesIterator.hasNext()) predicate.append("/^");
-        }
-        return predicate.toString();
+    private String getExtraInformationFromLexicalEntry() {
+        return optional(triple("?id", combinePredicates(HAS_SENSE, HAS_DEFINITION, HAS_TEXT_REPRESENTATION, WRITTEN_FORM), "?definition")) +
+                optional(triple("?id", combinePredicates(HAS_SENSE, HAS_SENSE_EXAMPLE, "lmf:text"), "?senseExample")) +
+                optional(triple("?id", combinePredicates(HAS_LEMMA, WRITTEN_FORM), "?lemma"));
     }
 
     private String makeLabelQuerySelectString(String query) {
@@ -162,65 +112,63 @@ public class FusekiClient {
         String graph4 = searchSynonyms(query);
 
 
-        String inside = union(graph1, graph2, graph3, graph4) + getRelevantInformationFromLexicalEntry() ;
+        String inside = union(graph1, graph2, graph3, graph4) + getExtraInformationFromLexicalEntry() ;
 
         String queryString =
-                select(inside, "?id", "?score", "?label", "?lemma", "?definition", "?senseExample");
+                select(inside, selects);
         System.out.println(queryString);
         return queryString ;
     }
 
-    private String optional(String optionalQuery) {
-        return " OPTIONAL {\n" + optionalQuery + "\n}";
-    }
-    private String graph(String graphName, String graphQuery) {return " GRAPH "+ graphName + "\n{\n" + graphQuery + "}\n";}
-    private String bind(String bindQuery, String as) { return "BIND("+bindQuery+" as " + as + ") .\n";}
-    private String union(String... graphs) {
-        StringBuilder unionString = new StringBuilder();
-        Iterator<String> unionIterator = Arrays.stream(graphs).iterator();
-        while(unionIterator.hasNext()) {
-            unionString.append("{\n")
-                    .append(unionIterator.next())
-                    .append("\n}\n");
-            if (unionIterator.hasNext()) unionString.append(" UNION ");
+    public List<SearchResult> execSelectAndProcess(String query, SearchRequest.SearchField searchField){
+        switch(searchField){
+            case LABEL:
+                return searchLabel(query);
+            case DEFINITION:
+                return searchDefinition(query);
+            default:
+                throw new RuntimeException("Blogas paieškos laukas!");
         }
-        return unionString.toString();
     }
-    private final String synonymPredicate = combinePredicates(hasSense, hasSenseRelation, senseRelatedTo);
-    private final String isSynonymPredicate = reverseCombinePredicates(senseRelatedTo, hasSenseRelation, hasSense);
 
-    private String select(String query, String... selection) {
-        StringBuilder selectBuilder = new StringBuilder();
-        selectBuilder.append("SELECT ");
-        for(String selectText : selection) {
-            selectBuilder.append(selectText);
-            selectBuilder.append(" ");
-        }
-        selectBuilder.append("\nWHERE \n{\n");
-        selectBuilder.append(query);
-        selectBuilder.append(" } ");
-        return selectBuilder.toString();
+    public List<SearchResult> searchDefinition(String query) {
+        throw new NotImplementedException("Not implemented yet!");
     }
-    private String searchQuery(String object,
-                               String searchField,
-                               String searchQuery,
-                               String extraParameters)
-    { return object + " " + textQuery + " ( " + searchField + " '" + searchQuery + "' " + extraParameters + " ) . \n" ; }
 
-    private String triple(String subject, String predicate, String object)  { return subject + " " + predicate + " " + object + " .\n"; }
-
-    public void searchLabel(String query) {
+    public List<SearchResult> searchLabel(String query) {
         try {
-            Query q = QueryFactory.create(makePrefixString() + makeLabelQuerySelectString(query));
+            Query q = QueryFactory.create(makePrefixString(prefixes) + makeLabelQuerySelectString(query));
+            List<SearchResult> searchResults = new ArrayList<>();
+            HashSet<String> definitions = new HashSet<>();
+            HashSet<String> senseExamples = new HashSet<>();
             QueryExecution test = service.query(q);
             ResultSet results = test.execSelect();
-            int i = 0;
+            String lastNode = "";
             while(results.hasNext()){
-                i++;
-                System.out.println(i + ". " + results.next().toString());
+                QuerySolution solution = results.next();
+                String id = solution.get("id").toString();
+                String label = solution.get("label").toString();
+                String score = solution.get("score").toString();
+                String lemma = solution.get("lemma").toString();
+                String definition = solution.get("definition").toString();
+                String senseExample = solution.get("senseExample").toString();
+                if(lastNode.equals(id) && results.hasNext()) {
+                    definitions.add(definition);
+                    senseExamples.add(senseExample);
+                }
+                else {
+                    lastNode = id;
+                    definitions.add(definition);
+                    senseExamples.add(senseExample);
+                    searchResults.add(new SearchResult(id, label, lemma, score, new ArrayList<>(definitions), new ArrayList<>(senseExamples)));
+                    definitions.clear();
+                    senseExamples.clear();
+                }
             }
+            return searchResults;
         } catch(Exception e) {
             System.out.println(e.getMessage());
+            return List.of();
         }
     }
 }

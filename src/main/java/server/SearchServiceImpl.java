@@ -3,7 +3,7 @@ package server;
 import client.SolrClient;
 import io.grpc.stub.StreamObserver;
 import ontology.OntologyModel;
-import org.tutorial.search.*;
+import org.bakalaurinis.search.*;
 
 import java.util.Map;
 
