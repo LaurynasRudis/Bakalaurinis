@@ -60,7 +60,7 @@ public class SolrClient {
             List<String> definition = result.getFieldValues("definition").stream()
                     .map(object -> Objects.toString(object, ""))
                     .collect(Collectors.toList());
-            String score = (String) result.getFieldValue("score");
+            String score = String.valueOf(result.getFieldValue("score"));
             searchResults.add(new SearchResult(id, label, lemma, score, definition, senseExample));
         }
         return searchResults;

@@ -1,14 +1,14 @@
 package client;
 
+import client.Fuseki.FusekiClient;
 import io.grpc.ManagedChannel;
 import io.grpc.ManagedChannelBuilder;
 import org.bakalaurinis.search.*;
 
-import javax.annotation.Resource;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.sql.SQLOutput;
+import java.nio.charset.StandardCharsets;
 
 public class GrpcClient {
     public static void main(String[] args) throws IOException {
@@ -70,17 +70,19 @@ public class GrpcClient {
 
                 SearchResponse sr = stub.search(SearchRequest.newBuilder()
                         .setQuery(search)
+                                .setSearchField(SearchRequest.SearchField.LABEL)
+                                .setSearchPredicate(SearchRequest.SearchPredicate.OR)
                         .build()
                 );
 
                 for(Result s : sr.getSearchResultsList()) {
-                    System.out.println(s);
+                    System.out.println(s.getDefinitionBytes(0).toString(StandardCharsets.UTF_8));
                 }
                 break;
             case "3":
                 SearchResponse sem = stub4.search(SearchRequest.newBuilder()
                         .setQuery("velnias")
-                        .setSearchField(SearchRequest.SearchField.LABEL)
+                        .setSearchField(SearchRequest.SearchField.DEFINITION)
                         .build()
                 );
 

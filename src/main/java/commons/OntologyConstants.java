@@ -17,6 +17,8 @@ public final class OntologyConstants {
     public static final String RDF_TYPE = "rdf:type";
     public static final String TEXT_QUERY = "text:query";
     public static final String LEXICAL_ENTRY = "lmf:LexicalEntry";
-
+    public static final String TEXT_REPRESENTATION = "lmf:TextRepresentation";
+    public static final double DIRECT_SYNONYM_SCORE_REDUCTION = 0.5;
+    public static final double QUERY_SYNONYM_SCORE_REDUCTION = 3;
 
 }

@@ -2,16 +2,18 @@ syntax = "proto3";
 option java_multiple_files = true;
 package org.bakalaurinis.search;
 
+enum SearchPredicate {
+  OR = 0;
+  AND = 1;
+}
+
+enum SearchField {
+  LABEL = 0;
+  DEFINITION = 1;
+}
+
 message SearchRequest {
   string query = 1;
-  enum SearchField {
-    LABEL = 0;
-    DEFINITION = 1;
-  }
-  enum SearchPredicate {
-    OR = 0;
-    AND = 1;
-  }
   SearchField search_field = 2;
   SearchPredicate search_predicate = 3;
 }

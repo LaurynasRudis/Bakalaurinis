@@ -1,6 +1,6 @@
 package server;
 
-import client.FusekiClient;
+import client.Fuseki.FusekiClient;
 import client.SolrClient;
 import io.grpc.Server;
 import io.grpc.ServerBuilder;

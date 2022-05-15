@@ -1,9 +1,8 @@
 package server;
 
-import client.FusekiClient;
+import client.Fuseki.FusekiClient;
 import commons.SearchResult;
 import io.grpc.stub.StreamObserver;
-import ontology.OntologyModel;
 import org.apache.commons.lang.NotImplementedException;
 import org.bakalaurinis.search.*;
 
