@@ -2,9 +2,7 @@ package client;
 
 import commons.SearchResult;
 import org.apache.commons.lang.NotImplementedException;
-import org.apache.jena.graph.Node;
 import org.apache.jena.query.*;
-import org.apache.jena.rdf.model.*;
 import org.apache.jena.rdfconnection.RDFConnection;
 import org.apache.jena.rdfconnection.RDFConnectionFuseki;
 import org.apache.jena.rdfconnection.RDFConnectionRemoteBuilder;
@@ -73,7 +71,7 @@ public class FusekiClient {
                         triple("?id", LABEL, "?label"));
     }
 
-    private String searchSynonyms (String query) {
+    private String searchSynonymsForLabel(String query) {
         double querySynonymReduction = 3;
         return union(
                 graph(SINONIMU_ZODYNAS,
@@ -109,7 +107,7 @@ public class FusekiClient {
         String graph1 = searchLabelQuery(query);
         String graph2 = searchLabelWithSynonymsQuery(query);
         String graph3 = searchLabelIsSynonymsQuery(query);
-        String graph4 = searchSynonyms(query);
+        String graph4 = searchSynonymsForLabel(query);
 
 
         String inside = union(graph1, graph2, graph3, graph4) + getExtraInformationFromLexicalEntry() ;
@@ -135,16 +133,15 @@ public class FusekiClient {
         throw new NotImplementedException("Not implemented yet!");
     }
 
-    public List<SearchResult> searchLabel(String query) {
+    private List<SearchResult> getSearchResultsFromQuery(Query query) {
         try {
-            Query q = QueryFactory.create(makePrefixString(prefixes) + makeLabelQuerySelectString(query));
             List<SearchResult> searchResults = new ArrayList<>();
             HashSet<String> definitions = new HashSet<>();
             HashSet<String> senseExamples = new HashSet<>();
-            QueryExecution test = service.query(q);
-            ResultSet results = test.execSelect();
+            QueryExecution queryExecution = service.query(query);
+            ResultSet results = queryExecution.execSelect();
             String lastNode = "";
-            while(results.hasNext()){
+            while (results.hasNext()) {
                 QuerySolution solution = results.next();
                 String id = solution.get("id").toString();
                 String label = solution.get("label").toString();
@@ -152,11 +149,10 @@ public class FusekiClient {
                 String lemma = solution.get("lemma").toString();
                 String definition = solution.get("definition").toString();
                 String senseExample = solution.get("senseExample").toString();
-                if(lastNode.equals(id) && results.hasNext()) {
+                if (lastNode.equals(id) && results.hasNext()) {
                     definitions.add(definition);
                     senseExamples.add(senseExample);
-                }
-                else {
+                } else {
                     lastNode = id;
                     definitions.add(definition);
                     senseExamples.add(senseExample);
@@ -166,9 +162,14 @@ public class FusekiClient {
                 }
             }
             return searchResults;
-        } catch(Exception e) {
+        } catch (Exception e) {
             System.out.println(e.getMessage());
             return List.of();
         }
     }
+
+    public List<SearchResult> searchLabel(String query) {
+            Query q = QueryFactory.create(makePrefixString(prefixes) + makeLabelQuerySelectString(query));
+            return getSearchResultsFromQuery(q);
+        }
 }

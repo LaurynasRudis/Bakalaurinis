@@ -8,11 +8,16 @@ message SearchRequest {
     LABEL = 0;
     DEFINITION = 1;
   }
+  enum SearchPredicate {
+    OR = 0;
+    AND = 1;
+  }
   SearchField search_field = 2;
+  SearchPredicate search_predicate = 3;
 }
 
 message SearchResponse {
-  repeated Result searchResults = 1;
+  repeated Result search_results = 1;
 }
 
 message Result {

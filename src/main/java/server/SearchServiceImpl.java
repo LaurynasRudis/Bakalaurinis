@@ -1,11 +1,15 @@
 package server;
 
 import client.SolrClient;
+import commons.SearchResult;
 import io.grpc.stub.StreamObserver;
 import ontology.OntologyModel;
 import org.bakalaurinis.search.*;
 
+import java.util.List;
 import java.util.Map;
+
+import static commons.ProtoCommons.buildSearchResponse;
 
 public class SearchServiceImpl extends SearchServiceGrpc.SearchServiceImplBase {
 
@@ -22,18 +26,12 @@ public class SearchServiceImpl extends SearchServiceGrpc.SearchServiceImplBase {
             StreamObserver<SearchResponse> responseStreamObserver
     ) {
         String searchText = searchRequest.getQuery();
+        String searchField = searchRequest.getSearchField().toString();
+        String searchPredicate = searchRequest.getSearchPredicate().toString();
         try {
-            long start = System.currentTimeMillis();
-            Map<String, String> s = solrClient.query(searchText);
-            long stop = System.currentTimeMillis();
-            SearchResponse.Builder response = SearchResponse.newBuilder();
-            int is = 0;
-            for(Map.Entry<String, String> i : s.entrySet()) {
-                response.addSearchResults(Result.newBuilder().setLabel(i.getValue()));
-            }
-            long time = stop - start;
-            System.out.println(time +" ms");
-            responseStreamObserver.onNext(response.build());
+            List<SearchResult> searchResults = solrClient.query(searchText, searchField, searchPredicate);
+            SearchResponse response = buildSearchResponse(searchResults);
+            responseStreamObserver.onNext(response);
             responseStreamObserver.onCompleted();
         } catch (Exception e) {
             System.out.println(e.getMessage());
