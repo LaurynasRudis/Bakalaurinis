@@ -23,18 +23,14 @@ public class GrpcClient {
     public GrpcClient(int port) {
         channel = ManagedChannelBuilder
                 .forAddress(address, port)
+                .maxInboundMessageSize(6005000)
                 .usePlaintext()
                 .build();
 
         stub = SearchServiceGrpc.newBlockingStub(channel);
     }
 
-    public List<SearchResult> search(String query, SearchRequest.SearchField searchField, SearchRequest.SearchPredicate searchPredicate){
-        SearchRequest searchRequest = SearchRequest.newBuilder()
-                .setQuery(query)
-                .setSearchField(searchField)
-                .setSearchPredicate(searchPredicate)
-                .build();
+    public List<SearchResult> search(SearchRequest searchRequest) {
         SearchResponse searchResponse = stub.search(searchRequest);
         List<SearchResult> searchResults = new ArrayList<>();
         for(Result r : searchResponse.getSearchResultsList()) {

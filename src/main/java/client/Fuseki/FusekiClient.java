@@ -7,7 +7,9 @@ import org.apache.jena.rdf.model.RDFNode;
 import org.apache.jena.rdfconnection.RDFConnection;
 import org.apache.jena.rdfconnection.RDFConnectionFuseki;
 import org.apache.jena.rdfconnection.RDFConnectionRemoteBuilder;
+import org.bakalaurinis.search.SearchField;
 import org.bakalaurinis.search.SearchRequest;
+import org.javatuples.Pair;
 
 import java.util.*;
 
@@ -66,9 +68,11 @@ public class FusekiClient {
 
         String graph2 = searchDefinitionWithSynonymsQuery(query);
 
-        String graph3 = searchDefinitionWithSynonymsQuery(query);
+        String graph3 = searchDefinitionIsSynonymsQuery(query);
 
-        String inside = union(graph1, graph2, graph3) + getExtraInformationFromLexicalEntry() ;
+        String graph4 = searchSynonymsForDefinition(query);
+
+        String inside = union(graph1, graph2, graph3, graph4) + getExtraInformationFromLexicalEntry() ;
 
         String queryString =
                 select(inside, selects);
@@ -76,7 +80,7 @@ public class FusekiClient {
         return queryString;
     }
 
-    public List<SearchResult> execSelectAndProcess(String query, SearchRequest.SearchField searchField){
+    public Pair<Long, List<SearchResult>> execSelectAndProcess(String query, SearchField searchField){
         switch(searchField){
             case LABEL:
                 return searchLabel(query);
@@ -88,13 +92,16 @@ public class FusekiClient {
     }
 
 
-    private List<SearchResult> getSearchResultsFromQuery(Query query) {
+    private Pair<Long, List<SearchResult>> getSearchResultsFromQuery(Query query) {
         try {
             List<SearchResult> searchResults = new ArrayList<>();
             HashSet<String> definitions = new HashSet<>();
             HashSet<String> senseExamples = new HashSet<>();
             QueryExecution queryExecution = service.query(query);
+            long queryStart = System.currentTimeMillis();
             ResultSet results = queryExecution.execSelect();
+            long queryFinished = System.currentTimeMillis();
+            long queryTime = queryFinished - queryStart;
             String lastNode = "";
             while (results.hasNext()) {
                 QuerySolution solution = results.next();
@@ -116,19 +123,19 @@ public class FusekiClient {
                     senseExamples.clear();
                 }
             }
-            return searchResults;
+            return new Pair<>(queryTime, searchResults);
         } catch (Exception e) {
             System.out.println("FAILED:" + e.getMessage());
-            return List.of();
+            return new Pair<>(0L, List.of());
         }
     }
 
-    public List<SearchResult> searchLabel(String query) {
+    private Pair<Long, List<SearchResult>> searchLabel(String query) {
             Query q = QueryFactory.create(makePrefixString(prefixes) + makeLabelQuerySelectString(query));
             return getSearchResultsFromQuery(q);
         }
 
-    public List<SearchResult> searchDefinition(String query) {
+    private Pair<Long, List<SearchResult>> searchDefinition(String query) {
         Query q = QueryFactory.create(makePrefixString(prefixes) + makeDefinitionQuerySelectString(query));
         return getSearchResultsFromQuery(q);
     }

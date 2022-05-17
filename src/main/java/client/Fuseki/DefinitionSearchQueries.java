@@ -38,7 +38,7 @@ public final class DefinitionSearchQueries {
         );
     }
 
-    static  String searchDefinitionIsSynonymsQuery(String query) { //Ar nereikia dar atvirkstinio varianto? (Tipo sinonimo sinonimai)
+    static  String searchDefinitionIsSynonymsQuery(String query) {
         return graph(ZODYNAS,
                 searchQuery("(?textRepresentation ?scoreTemp)", WRITTEN_FORM, query, "") +
                         bind("?scoreTemp - " + DIRECT_SYNONYM_SCORE_REDUCTION, "?score") +
@@ -56,5 +56,38 @@ public final class DefinitionSearchQueries {
                         triple("?id", LABEL, "?labelTemp") +
                         triple("?id", RDF_TYPE, LEXICAL_ENTRY) +
                         triple("?id", LABEL, "?label"));
+    }
+
+    static String searchSynonymsForDefinition(String query) {
+        return union(
+                graph(SINONIMU_ZODYNAS,
+                        searchQuery("(?textRepresentation ?scoreTemp)", WRITTEN_FORM, query, "") +
+                                bind("?scoreTemp - " + QUERY_SYNONYM_SCORE_REDUCTION, "?score") +
+                                triple("?textRepresentation", RDF_TYPE, TEXT_REPRESENTATION) +
+                                triple("?textRepresentation",
+                                        reverseCombinePredicates(HAS_TEXT_REPRESENTATION,
+                                                HAS_DEFINITION,
+                                                HAS_SENSE),
+                                        "?tempId") +
+                                triple("?tempId", LABEL, "?labelTemp2") +
+                                triple("?tempId", synonymPredicate+"/"+ LABEL, "?labelTemp")
+                ),
+                graph(SINONIMU_ZODYNAS,
+                        searchQuery("(?textRepresentation ?scoreTemp)", WRITTEN_FORM, query, "") +
+                                bind("?scoreTemp - " + QUERY_SYNONYM_SCORE_REDUCTION, "?score") +
+                                triple("?textRepresentation", RDF_TYPE, TEXT_REPRESENTATION) +
+                                triple("?textRepresentation",
+                                        reverseCombinePredicates(HAS_TEXT_REPRESENTATION,
+                                                HAS_DEFINITION,
+                                                HAS_SENSE),
+                                        "?tempId") +
+                                triple("?tempId", LABEL, "?labelTemp2") +
+                                triple("?tempId", isSynonymPredicate+"/"+ LABEL, "?labelTemp") )
+        ) +
+                graph(ZODYNAS,
+                        triple("?id", LABEL, "?labelTemp") +
+                                triple("?id", RDF_TYPE, LEXICAL_ENTRY) +
+                                triple("?id", LABEL, "?label")
+                );
     }
 }

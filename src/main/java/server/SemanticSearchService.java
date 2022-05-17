@@ -5,6 +5,7 @@ import commons.SearchResult;
 import io.grpc.stub.StreamObserver;
 import org.apache.commons.lang.NotImplementedException;
 import org.bakalaurinis.search.*;
+import org.javatuples.Pair;
 
 import java.util.List;
 
@@ -23,9 +24,9 @@ public class SemanticSearchService extends SearchServiceGrpc.SearchServiceImplBa
             StreamObserver<SearchResponse> responseStreamObserver
     ) {
         String searchQuery = searchRequest.getQuery();
-        SearchRequest.SearchField searchField = searchRequest.getSearchField();
-        List<SearchResult> searchResults = fusekiClient.execSelectAndProcess(searchQuery, searchField);
-        SearchResponse response = buildSearchResponse(searchResults);
+        SearchField searchField = searchRequest.getSearchField();
+        Pair<Long, List<SearchResult>> queryTimeAndSearchResults = fusekiClient.execSelectAndProcess(searchQuery, searchField);
+        SearchResponse response = buildSearchResponse(queryTimeAndSearchResults);
 
         responseStreamObserver.onNext(response);
         responseStreamObserver.onCompleted();

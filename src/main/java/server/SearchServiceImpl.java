@@ -5,6 +5,7 @@ import commons.SearchResult;
 import io.grpc.stub.StreamObserver;
 import ontology.OntologyModel;
 import org.bakalaurinis.search.*;
+import org.javatuples.Pair;
 
 import java.util.List;
 import java.util.Map;
@@ -29,8 +30,8 @@ public class SearchServiceImpl extends SearchServiceGrpc.SearchServiceImplBase {
         String searchField = searchRequest.getSearchField().toString();
         String searchPredicate = searchRequest.getSearchPredicate().toString();
         try {
-            List<SearchResult> searchResults = solrClient.query(searchText, searchField, searchPredicate);
-            SearchResponse response = buildSearchResponse(searchResults);
+            Pair<Long, List<SearchResult>> queryTimeAndSearchResults = solrClient.query(searchText, searchField, searchPredicate);
+            SearchResponse response = buildSearchResponse(queryTimeAndSearchResults);
             responseStreamObserver.onNext(response);
             responseStreamObserver.onCompleted();
         } catch (Exception e) {

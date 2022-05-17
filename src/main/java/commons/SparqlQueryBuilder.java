@@ -24,7 +24,7 @@ public class SparqlQueryBuilder {
 
     public static String select(String query, String... selects) {
         StringBuilder selectBuilder = new StringBuilder();
-        selectBuilder.append("SELECT ");
+        selectBuilder.append("SELECT DISTINCT ");
         for(String selectText : selects) {
             selectBuilder.append(selectText);
             selectBuilder.append(" ");

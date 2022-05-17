@@ -3,8 +3,6 @@ package client;
 import commons.SearchResult;
 import ontology.DictionaryValue;
 import ontology.OntologyModel;
-import org.apache.jena.ontology.Individual;
-import org.apache.jena.util.iterator.ExtendedIterator;
 import org.apache.solr.client.solrj.SolrServerException;
 import org.apache.solr.client.solrj.impl.Http2SolrClient;
 import org.apache.solr.client.solrj.impl.XMLResponseParser;
@@ -13,6 +11,7 @@ import org.apache.solr.client.solrj.response.UpdateResponse;
 import org.apache.solr.common.SolrDocument;
 import org.apache.solr.common.SolrDocumentList;
 import org.apache.solr.common.params.MapSolrParams;
+import org.javatuples.Pair;
 
 import java.io.IOException;
 import java.util.*;
@@ -30,7 +29,7 @@ public class SolrClient {
         this.solrClient.setParser(new XMLResponseParser());
     }
 
-    public List<SearchResult> query(String searchText, String searchField, String searchPredicate) throws SolrServerException, IOException {
+    public Pair<Long, List<SearchResult>> query(String searchText, String searchField, String searchPredicate) throws SolrServerException, IOException {
         Map<String, String> queryParamMap = new HashMap<>();
         String[] searchWords = searchText.split("\\s+");
         String searchFieldUnaccented = searchField.toLowerCase()+"_unaccented";
@@ -48,7 +47,10 @@ public class SolrClient {
         List<SearchResult> searchResults = new ArrayList<>();
 
 
+        long startQuery = System.currentTimeMillis();
         QueryResponse response = solrClient.query(queryParams);
+        long finishQuery = System.currentTimeMillis();
+        long queryTime = finishQuery - startQuery;
         SolrDocumentList results = response.getResults();
         for (SolrDocument result : results) {
             String id = (String) result.getFieldValue("id");
@@ -63,7 +65,7 @@ public class SolrClient {
             String score = String.valueOf(result.getFieldValue("score"));
             searchResults.add(new SearchResult(id, label, lemma, score, definition, senseExample));
         }
-        return searchResults;
+        return new Pair<>(queryTime, searchResults);
     }
 
     public void indexOntologyModel(OntologyModel model) {
