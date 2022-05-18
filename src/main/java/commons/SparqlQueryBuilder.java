@@ -44,7 +44,13 @@ public class SparqlQueryBuilder {
                                String extraParameters)
     { return object + " " + TEXT_QUERY + " ( " + searchField + " '" + searchQuery + "' " + extraParameters + " ) . \n" ; }
 
-    public static String graph(String graphName, String graphQuery) {return " GRAPH "+ graphName + "\n{\n" + graphQuery + "}\n";} //CLEANUP TO String...
+    public static String graph(String graphName, String... queries) {
+        StringBuilder graphQuery= new StringBuilder();
+        for(String query: queries) {
+            graphQuery.append(query);
+        }
+        return " GRAPH "+ graphName + "\n{\n" + graphQuery + "}\n";
+    }
     public static String bind(String bindQuery, String as) { return "BIND("+bindQuery+" as " + as + ") .\n";}
     public static String union(String... graphs) {
         StringBuilder unionString = new StringBuilder();

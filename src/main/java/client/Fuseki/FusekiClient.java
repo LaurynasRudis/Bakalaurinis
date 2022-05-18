@@ -1,14 +1,11 @@
 package client.Fuseki;
 
 import commons.SearchResult;
-import org.apache.commons.lang.NotImplementedException;
 import org.apache.jena.query.*;
-import org.apache.jena.rdf.model.RDFNode;
 import org.apache.jena.rdfconnection.RDFConnection;
 import org.apache.jena.rdfconnection.RDFConnectionFuseki;
 import org.apache.jena.rdfconnection.RDFConnectionRemoteBuilder;
 import org.bakalaurinis.search.SearchField;
-import org.bakalaurinis.search.SearchRequest;
 import org.javatuples.Pair;
 
 import java.util.*;
@@ -24,9 +21,7 @@ public class FusekiClient {
 
     private final RDFConnection service;
     private final Map<String, String> prefixes = new HashMap<>();
-
-
-    private final double directSynonymReduction = 0.5 ;
+    private final String[] selects = {"?id", "?score", "?label", "?lemma", "?definition", "?senseExample"};
 
     public FusekiClient(String serviceName) {
         RDFConnectionRemoteBuilder builder = RDFConnectionFuseki.create().destination(address+"/"+serviceName).queryEndpoint("sparql");
@@ -38,14 +33,17 @@ public class FusekiClient {
         prefixes.put("text", "http://jena.apache.org/text#");
     }
 
-    private String getExtraInformationFromLexicalEntry() {
-        return optional(triple("?id", combinePredicates(HAS_SENSE, HAS_DEFINITION, HAS_TEXT_REPRESENTATION, WRITTEN_FORM), "?definition")) +
-                optional(triple("?id", combinePredicates(HAS_SENSE, HAS_SENSE_EXAMPLE, "lmf:text"), "?senseExample")) +
-                optional(triple("?id", combinePredicates(HAS_LEMMA, WRITTEN_FORM), "?lemma"));
+    private String getInformationFromBLKZLexicalEntry() {
+        return graph(ZODYNAS,
+                triple("?id", LABEL, "?label"),
+                optional(triple("?id", combinePredicates(HAS_SENSE, HAS_DEFINITION, HAS_TEXT_REPRESENTATION, WRITTEN_FORM), "?definition")),
+                optional(triple("?id", combinePredicates(HAS_SENSE, HAS_SENSE_EXAMPLE, "lmf:text"), "?senseExample")),
+                optional(triple("?id", combinePredicates(HAS_LEMMA, WRITTEN_FORM), "?lemma"))
+        );
     }
 
     private String makeLabelQuerySelectString(String query) {
-        String[] selects = {"?id", "?score", "?label", "?lemma", "?definition", "?senseExample"};
+
 
         String graph1 = searchLabelQuery(query);
         String graph2 = searchLabelWithSynonymsQuery(query);
@@ -53,7 +51,7 @@ public class FusekiClient {
         String graph4 = searchSynonymsForLabel(query);
 
 
-        String inside = union(graph1, graph2, graph3, graph4) + getExtraInformationFromLexicalEntry() ;
+        String inside = union(graph1, graph2, graph3, graph4) + getInformationFromBLKZLexicalEntry() ;
 
         String queryString =
                 select(inside, selects);
@@ -72,7 +70,7 @@ public class FusekiClient {
 
         String graph4 = searchSynonymsForDefinition(query);
 
-        String inside = union(graph1, graph2, graph3, graph4) + getExtraInformationFromLexicalEntry() ;
+        String inside = union(graph1, graph2, graph3, graph4) + getInformationFromBLKZLexicalEntry() ;
 
         String queryString =
                 select(inside, selects);
@@ -102,25 +100,32 @@ public class FusekiClient {
             ResultSet results = queryExecution.execSelect();
             long queryFinished = System.currentTimeMillis();
             long queryTime = queryFinished - queryStart;
-            String lastNode = "";
-            while (results.hasNext()) {
+            String lastId = "";
+            String lemma = "";
+            String label = "";
+            String score = "";
+            while(results.hasNext()) {
                 QuerySolution solution = results.next();
-                String id = Objects.toString(solution.get("id"), "");
-                String label = Objects.toString(solution.get("label"), "");
-                String score = Objects.toString(solution.get("score"), "");
-                String lemma = Objects.toString(solution.get("lemma"), "");
-                String definition = Objects.toString(solution.get("definition"), "");
-                String senseExample = Objects.toString(solution.get("senseExample"), "");
-                if (lastNode.equals(id) && results.hasNext()) {
-                    definitions.add(definition);
-                    senseExamples.add(senseExample);
-                } else {
-                    lastNode = id;
-                    definitions.add(definition);
-                    senseExamples.add(senseExample);
-                    searchResults.add(new SearchResult(id, label, lemma, score, new ArrayList<>(definitions), new ArrayList<>(senseExamples)));
+                String id = Objects.toString(solution.get("id"));
+                if(lastId.isBlank()) {
+                    lemma = Objects.toString(solution.get("lemma"));
+                    label = Objects.toString(solution.get("label"));
+                    score = Objects.toString(solution.get("score"));
+                    lastId = id;
+                }
+                if (!lastId.equals(id)) {
+                    searchResults.add(new SearchResult(lastId, label, lemma, score, new ArrayList<>(definitions), new ArrayList<>(senseExamples)));
+                    lemma = Objects.toString(solution.get("lemma"));
+                    label = Objects.toString(solution.get("label"));
+                    score = Objects.toString(solution.get("score"));
+                    lastId = id;
                     definitions.clear();
                     senseExamples.clear();
+                }
+                definitions.add(Objects.toString(solution.get("definition")));
+                senseExamples.add(Objects.toString(solution.get("senseExample")));
+                if (!results.hasNext()) {
+                    searchResults.add(new SearchResult(id, label, lemma, score, new ArrayList<>(definitions), new ArrayList<>(senseExamples)));
                 }
             }
             return new Pair<>(queryTime, searchResults);

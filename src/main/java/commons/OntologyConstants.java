@@ -3,6 +3,7 @@ package commons;
 public final class OntologyConstants {
     public static final String SINONIMU_ZODYNAS = "lmf:Sinonimu_zodynas";
     public static final String ZODYNAS = "lmf:zodynas";
+    public static final String ZODYNAS_BE_AKCENTU = "lmf:zodynas_be_akcentu";
     public static final String HAS_LEMMA = "lmf:hasLemma";
     public static final String HAS_SENSE = "lmf:hasSense";
     public static final String HAS_SENSE_RELATION = "lmf:hasSenseRelation";
