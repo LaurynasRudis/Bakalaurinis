@@ -2,19 +2,12 @@ package scripts;
 
 import commons.ExcelSpreadsheet;
 import commons.SearchResult;
-import org.apache.poi.ss.usermodel.Cell;
-import org.apache.poi.xssf.usermodel.XSSFRow;
-import org.apache.poi.xssf.usermodel.XSSFSheet;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.bakalaurinis.search.SearchField;
 import org.bakalaurinis.search.SearchPredicate;
 import org.bakalaurinis.search.SearchRequest;
+import org.javatuples.Triplet;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -43,10 +36,10 @@ public class SolrSearchScript {
 
         for(Map.Entry<String, GrpcClient> clientEntry : clients.entrySet()) {
             GrpcClient client = clientEntry.getValue();
-            List<SearchResult> searchResults1 = client.search(searchRequest1);
+            Triplet<Long, List<SearchResult>, Integer> searchResults1 = client.search(searchRequest1);
             String clientName = clientEntry.getKey();
             excelSpreadsheet.writeSearchResults(clientName+"1", searchResults1);
-            List<SearchResult> searchResults2 = client.search(searchRequest2);
+            Triplet<Long, List<SearchResult>, Integer> searchResults2 = client.search(searchRequest2);
             excelSpreadsheet.writeSearchResults(clientName+"2", searchResults2);
         }
     }

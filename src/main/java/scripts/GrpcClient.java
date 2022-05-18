@@ -8,6 +8,7 @@ import org.bakalaurinis.search.Result;
 import org.bakalaurinis.search.SearchRequest;
 import org.bakalaurinis.search.SearchResponse;
 import org.bakalaurinis.search.SearchServiceGrpc;
+import org.javatuples.Triplet;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -30,9 +31,12 @@ public class GrpcClient {
         stub = SearchServiceGrpc.newBlockingStub(channel);
     }
 
-    public List<SearchResult> search(SearchRequest searchRequest) {
+    public Triplet<Long, List<SearchResult>, Integer> search(SearchRequest searchRequest) {
         SearchResponse searchResponse = stub.search(searchRequest);
         List<SearchResult> searchResults = new ArrayList<>();
+        long queryTime = (long) searchResponse.getQueryTime();
+        int resultCount = searchResponse.getResultCount();
+
         for(Result r : searchResponse.getSearchResultsList()) {
             searchResults.add(new SearchResult(
                     r.getIdBytes().toStringUtf8(),
@@ -47,6 +51,6 @@ public class GrpcClient {
                             .collect(Collectors.toList())
             ));
         }
-        return searchResults;
+        return new Triplet<>(queryTime, searchResults, resultCount);
     }
 }

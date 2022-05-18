@@ -4,11 +4,11 @@ import org.apache.poi.ss.usermodel.Cell;
 import org.apache.poi.xssf.usermodel.XSSFRow;
 import org.apache.poi.xssf.usermodel.XSSFSheet;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.javatuples.Triplet;
 
 import java.io.File;
 import java.io.FileOutputStream;
 import java.util.List;
-import java.util.stream.Collectors;
 
 public class ExcelSpreadsheet {
     private final XSSFWorkbook workbook;
@@ -19,17 +19,27 @@ public class ExcelSpreadsheet {
         file = new File(fileLocation);
     }
 
-    public void writeSearchResults(String spreadsheetName, List<SearchResult> searchResults) {
+    public void writeSearchResults(String spreadsheetName, Triplet<Long, List<SearchResult>, Integer> searchResults) {
         XSSFSheet spreadsheet = workbook.createSheet(spreadsheetName);
         String[] columnNames = {"Id", "Label", "Lemma", "SenseExample", "Definition", "Score"};
         int rowId = 0;
         int cellId = 0;
         XSSFRow row = spreadsheet.createRow(rowId++);
+        Cell cell = row.createCell(cellId++);
+        cell.setCellValue("Query Time: ");
+        cell = row.createCell(cellId++);
+        cell.setCellValue(searchResults.getValue0());
+        cell = row.createCell(cellId++);
+        cell.setCellValue("Result count: ");
+        cell = row.createCell(cellId);
+        cell.setCellValue(searchResults.getValue2());
+        cellId = 0;
+        row = spreadsheet.createRow(rowId++);
         for(String columnName : columnNames) {
-            Cell cell = row.createCell(cellId++);
+            cell = row.createCell(cellId++);
             cell.setCellValue(columnName);
         }
-        for(SearchResult searchResult : searchResults) {
+        for(SearchResult searchResult : searchResults.getValue1()) {
             row = spreadsheet.createRow(rowId++);
             String[] results = {
                     searchResult.getId(),
@@ -41,7 +51,7 @@ public class ExcelSpreadsheet {
             };
             cellId = 0;
             for (String result : results) {
-                Cell cell = row.createCell(cellId++);
+                cell = row.createCell(cellId++);
                 cell.setCellValue(result);
             }
         }
