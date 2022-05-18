@@ -6,6 +6,7 @@ import org.apache.jena.rdfconnection.RDFConnection;
 import org.apache.jena.rdfconnection.RDFConnectionFuseki;
 import org.apache.jena.rdfconnection.RDFConnectionRemoteBuilder;
 import org.bakalaurinis.search.SearchField;
+import org.bakalaurinis.search.WithSynonyms;
 import org.javatuples.Pair;
 
 import java.util.*;
@@ -21,7 +22,7 @@ public class FusekiClient {
 
     private final RDFConnection service;
     private final Map<String, String> prefixes = new HashMap<>();
-    private final String[] selects = {"?id", "?score", "?label", "?lemma", "?definition", "?senseExample"};
+    private final String[] selects = {"?id", "(str(?score) as ?s)", "?label", "?lemma", "?definition", "?senseExample"};
 
     public FusekiClient(String serviceName) {
         RDFConnectionRemoteBuilder builder = RDFConnectionFuseki.create().destination(address+"/"+serviceName).queryEndpoint("sparql");
@@ -42,16 +43,25 @@ public class FusekiClient {
         );
     }
 
-    private String makeLabelQuerySelectString(String query) {
+    private String makeLabelQuerySelectString(String query, WithSynonyms withSynonyms) {
 
+        List<String> graphs = new ArrayList<>();
+        String mainGraph = searchLabelQuery(query);
+        graphs.add(mainGraph);
+        if(withSynonyms.getSynonyms()){
+            String graph = searchLabelWithSynonymsQuery(query);
+            graphs.add(graph);
+        }
+        if(withSynonyms.getIsSynonym()){
+            String graph = searchLabelIsSynonymsQuery(query);
+            graphs.add(graph);
+        }
+        if(withSynonyms.getQuerySynonyms()){
+            String graph = searchSynonymsForLabel(query);
+            graphs.add(graph);
+        }
 
-        String graph1 = searchLabelQuery(query);
-        String graph2 = searchLabelWithSynonymsQuery(query);
-        String graph3 = searchLabelIsSynonymsQuery(query);
-        String graph4 = searchSynonymsForLabel(query);
-
-
-        String inside = union(graph1, graph2, graph3, graph4) + getInformationFromBLKZLexicalEntry() ;
+        String inside = union(graphs.toArray(String[]::new)) + getInformationFromBLKZLexicalEntry() ;
 
         String queryString =
                 select(inside, selects);
@@ -59,18 +69,28 @@ public class FusekiClient {
         return queryString ;
     }
 
-    private String makeDefinitionQuerySelectString(String query) {
-        String[] selects = {"?id", "?score", "?label", "?lemma", "?definition", "?senseExample"};
+    private String makeDefinitionQuerySelectString(String query, WithSynonyms withSynonyms) {
+        List<String> graphs = new ArrayList<>();
 
-        String graph1 = searchDefinitionQuery(query);
+        String mainGraph = searchDefinitionQuery(query);
+        graphs.add(mainGraph);
 
-        String graph2 = searchDefinitionWithSynonymsQuery(query);
+        if(withSynonyms.getSynonyms()) {
+            String graph = searchDefinitionWithSynonymsQuery(query);
+            graphs.add(graph);
+        }
 
-        String graph3 = searchDefinitionIsSynonymsQuery(query);
+        if(withSynonyms.getIsSynonym()) {
+            String graph = searchDefinitionIsSynonymsQuery(query);
+            graphs.add(graph);
+        }
 
-        String graph4 = searchSynonymsForDefinition(query);
+        if(withSynonyms.getQuerySynonyms()) {
+            String graph = searchSynonymsForDefinition(query);
+            graphs.add(graph);
+        }
 
-        String inside = union(graph1, graph2, graph3, graph4) + getInformationFromBLKZLexicalEntry() ;
+        String inside = union(graphs.toArray(String[]::new)) + getInformationFromBLKZLexicalEntry();
 
         String queryString =
                 select(inside, selects);
@@ -78,12 +98,12 @@ public class FusekiClient {
         return queryString;
     }
 
-    public Pair<Long, List<SearchResult>> execSelectAndProcess(String query, SearchField searchField){
+    public Pair<Long, List<SearchResult>> execSelectAndProcess(String query, SearchField searchField, WithSynonyms withSynonyms){
         switch(searchField){
             case LABEL:
-                return searchLabel(query);
+                return searchLabel(query, withSynonyms);
             case DEFINITION:
-                return searchDefinition(query);
+                return searchDefinition(query, withSynonyms);
             default:
                 throw new RuntimeException("Blogas paieškos laukas!");
         }
@@ -106,24 +126,24 @@ public class FusekiClient {
             String score = "";
             while(results.hasNext()) {
                 QuerySolution solution = results.next();
-                String id = Objects.toString(solution.get("id"));
+                String id = Objects.toString(solution.get("id"), "");
                 if(lastId.isBlank()) {
-                    lemma = Objects.toString(solution.get("lemma"));
-                    label = Objects.toString(solution.get("label"));
-                    score = Objects.toString(solution.get("score"));
+                    lemma = Objects.toString(solution.get("lemma"), "");
+                    label = Objects.toString(solution.get("label"), "");
+                    score = Objects.toString(solution.get("s"), "");
                     lastId = id;
                 }
                 if (!lastId.equals(id)) {
                     searchResults.add(new SearchResult(lastId, label, lemma, score, new ArrayList<>(definitions), new ArrayList<>(senseExamples)));
-                    lemma = Objects.toString(solution.get("lemma"));
-                    label = Objects.toString(solution.get("label"));
-                    score = Objects.toString(solution.get("score"));
+                    lemma = Objects.toString(solution.get("lemma"), "");
+                    label = Objects.toString(solution.get("label"), "");
+                    score = Objects.toString(solution.get("s"), "");
                     lastId = id;
                     definitions.clear();
                     senseExamples.clear();
                 }
-                definitions.add(Objects.toString(solution.get("definition")));
-                senseExamples.add(Objects.toString(solution.get("senseExample")));
+                definitions.add(Objects.toString(solution.get("definition"), ""));
+                senseExamples.add(Objects.toString(solution.get("senseExample"), ""));
                 if (!results.hasNext()) {
                     searchResults.add(new SearchResult(id, label, lemma, score, new ArrayList<>(definitions), new ArrayList<>(senseExamples)));
                 }
@@ -135,13 +155,13 @@ public class FusekiClient {
         }
     }
 
-    private Pair<Long, List<SearchResult>> searchLabel(String query) {
-            Query q = QueryFactory.create(makePrefixString(prefixes) + makeLabelQuerySelectString(query));
+    private Pair<Long, List<SearchResult>> searchLabel(String query, WithSynonyms withSynonyms) {
+            Query q = QueryFactory.create(makePrefixString(prefixes) + makeLabelQuerySelectString(query, withSynonyms));
             return getSearchResultsFromQuery(q);
         }
 
-    private Pair<Long, List<SearchResult>> searchDefinition(String query) {
-        Query q = QueryFactory.create(makePrefixString(prefixes) + makeDefinitionQuerySelectString(query));
+    private Pair<Long, List<SearchResult>> searchDefinition(String query, WithSynonyms withSynonyms) {
+        Query q = QueryFactory.create(makePrefixString(prefixes) + makeDefinitionQuerySelectString(query, withSynonyms));
         return getSearchResultsFromQuery(q);
     }
 

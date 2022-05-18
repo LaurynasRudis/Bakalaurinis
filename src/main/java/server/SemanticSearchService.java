@@ -25,7 +25,8 @@ public class SemanticSearchService extends SearchServiceGrpc.SearchServiceImplBa
     ) {
         String searchQuery = searchRequest.getQuery();
         SearchField searchField = searchRequest.getSearchField();
-        Pair<Long, List<SearchResult>> queryTimeAndSearchResults = fusekiClient.execSelectAndProcess(searchQuery, searchField);
+        WithSynonyms withSynonyms = searchRequest.getWithSynonym();
+        Pair<Long, List<SearchResult>> queryTimeAndSearchResults = fusekiClient.execSelectAndProcess(searchQuery, searchField, withSynonyms);
         SearchResponse response = buildSearchResponse(queryTimeAndSearchResults);
 
         responseStreamObserver.onNext(response);

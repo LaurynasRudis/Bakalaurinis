@@ -37,4 +37,12 @@ public class ProtoCommons {
                 .setSearchPredicate(searchPredicate)
                 .build();
     }
+
+    public static SearchRequest createSearchRequest(String query, SearchField searchField, WithSynonyms withSynonyms) {
+        return SearchRequest.newBuilder()
+                .setQuery(query)
+                .setSearchField(searchField)
+                .setWithSynonym(withSynonyms)
+                .build();
+    }
 }

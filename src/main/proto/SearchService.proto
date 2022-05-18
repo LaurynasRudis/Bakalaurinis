@@ -3,19 +3,30 @@ option java_multiple_files = true;
 package org.bakalaurinis.search;
 
 enum SearchPredicate {
-  OR = 0;
-  AND = 1;
+  UNKNOWN_PREDICATE = 0;
+  OR = 1;
+  AND = 2;
 }
 
 enum SearchField {
-  LABEL = 0;
-  DEFINITION = 1;
+  UNKNOWN_FIELD = 0;
+  LABEL = 1;
+  DEFINITION = 2;
+}
+
+message WithSynonyms {
+  bool synonyms = 1 ;
+  bool is_synonym = 2;
+  bool query_synonyms = 3;
 }
 
 message SearchRequest {
   string query = 1;
   SearchField search_field = 2;
-  SearchPredicate search_predicate = 3;
+  oneof search_option {
+    SearchPredicate search_predicate = 3;
+    WithSynonyms with_synonym = 4;
+  }
 }
 
 message SearchResponse {
