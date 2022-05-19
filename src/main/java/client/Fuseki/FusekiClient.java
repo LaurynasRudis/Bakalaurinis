@@ -1,6 +1,8 @@
 package client.Fuseki;
 
 import commons.SearchResult;
+import commons.SparqlQueryBuilder.GraphQueryBuilder;
+import commons.SparqlQueryBuilder.UnionQueryBuilder;
 import org.apache.jena.query.*;
 import org.apache.jena.rdfconnection.RDFConnection;
 import org.apache.jena.rdfconnection.RDFConnectionFuseki;
@@ -14,18 +16,18 @@ import java.util.*;
 import static client.Fuseki.DefinitionSearchQueries.*;
 import static client.Fuseki.LabelSearchQueries.*;
 import static commons.OntologyConstants.*;
-import static commons.SparqlQueryBuilder.*;
+import static commons.SparqlQueryBuilder.SparqlQueryBuilder.*;
 
 
 public class FusekiClient {
-    private final String address = "http://localhost:3030";
 
     private final RDFConnection service;
     private final Map<String, String> prefixes = new HashMap<>();
     private final String[] selects = {"?id", "(str(?score) as ?s)", "?label", "?lemma", "?definition", "?senseExample"};
 
     public FusekiClient(String serviceName) {
-        RDFConnectionRemoteBuilder builder = RDFConnectionFuseki.create().destination(address+"/"+serviceName).queryEndpoint("sparql");
+        String address = "http://localhost:3030";
+        RDFConnectionRemoteBuilder builder = RDFConnectionFuseki.create().destination(address +"/"+serviceName).queryEndpoint("sparql");
         service = builder.build();
         prefixes.put("te", "http://www.w3.org/2006/time-entry#");
         prefixes.put("rdfs", "http://www.w3.org/2000/01/rdf-schema#");
@@ -45,23 +47,24 @@ public class FusekiClient {
 
     private String makeLabelQuerySelectString(String query, SemanticSearchOptions searchOptions) {
 
-        List<String> graphs = new ArrayList<>();
-        String mainGraph = searchLabelQuery(query);
-        graphs.add(mainGraph);
+        UnionQueryBuilder unionQueryBuilder = new UnionQueryBuilder();
+        boolean withIndex = searchOptions.getUseIndexes();
+        String mainGraph = searchLabelQuery(query, withIndex);
+        unionQueryBuilder.add(mainGraph);
         if(searchOptions.getSearchWithSynonyms()){
-            String graph = searchLabelWithSynonymsQuery(query);
-            graphs.add(graph);
+            String graph = searchLabelWithSynonymsQuery(query, withIndex);
+            unionQueryBuilder.add(graph);
         }
         if(searchOptions.getSearchWithIsSynonym()){
-            String graph = searchLabelIsSynonymsQuery(query);
-            graphs.add(graph);
+            String graph = searchLabelIsSynonymsQuery(query, withIndex);
+            unionQueryBuilder.add(graph);
         }
         if(searchOptions.getSearchWithQuerySynonyms()){
-            String graph = searchSynonymsForLabel(query);
-            graphs.add(graph);
+            String graph = searchSynonymsForLabel(query, withIndex);
+            unionQueryBuilder.add(graph);
         }
 
-        String inside = union(graphs.toArray(String[]::new)) + getInformationFromBLKZLexicalEntry() ;
+        String inside = unionQueryBuilder.build() + getInformationFromBLKZLexicalEntry() ;
 
         String queryString =
                 select(inside, selects);
@@ -70,27 +73,28 @@ public class FusekiClient {
     }
 
     private String makeDefinitionQuerySelectString(String query, SemanticSearchOptions searchOptions) {
-        List<String> graphs = new ArrayList<>();
+        UnionQueryBuilder unionQueryBuilder = new UnionQueryBuilder();
+        boolean withIndex = searchOptions.getUseIndexes();
 
-        String mainGraph = searchDefinitionQuery(query);
-        graphs.add(mainGraph);
+        String mainGraph = searchDefinitionQuery(query, withIndex);
+        unionQueryBuilder.add(mainGraph);
 
         if(searchOptions.getSearchWithSynonyms()) {
-            String graph = searchDefinitionWithSynonymsQuery(query);
-            graphs.add(graph);
+            String graph = searchDefinitionWithSynonymsQuery(query, withIndex);
+            unionQueryBuilder.add(graph);
         }
 
         if(searchOptions.getSearchWithIsSynonym()) {
-            String graph = searchDefinitionIsSynonymsQuery(query);
-            graphs.add(graph);
+            String graph = searchDefinitionIsSynonymsQuery(query, withIndex);
+            unionQueryBuilder.add(graph);
         }
 
         if(searchOptions.getSearchWithQuerySynonyms()) {
-            String graph = searchSynonymsForDefinition(query);
-            graphs.add(graph);
+            String graph = searchSynonymsForDefinition(query, withIndex);
+            unionQueryBuilder.add(graph);
         }
 
-        String inside = union(graphs.toArray(String[]::new)) + getInformationFromBLKZLexicalEntry();
+        String inside = unionQueryBuilder.build() + getInformationFromBLKZLexicalEntry();
 
         String queryString =
                 select(inside, selects);
@@ -127,7 +131,7 @@ public class FusekiClient {
             while(results.hasNext()) {
                 QuerySolution solution = results.next();
                 String id = Objects.toString(solution.get("id"), "");
-                if(lastId.isBlank()) {
+                if (lastId.isBlank()) {
                     lemma = Objects.toString(solution.get("lemma"), "");
                     label = Objects.toString(solution.get("label"), "");
                     score = Objects.toString(solution.get("s"), "");

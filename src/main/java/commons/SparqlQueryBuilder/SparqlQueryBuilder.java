@@ -1,8 +1,6 @@
-package commons;
+package commons.SparqlQueryBuilder;
 
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.Map;
+import java.util.*;
 
 import static commons.OntologyConstants.*;
 import static commons.OntologyConstants.HAS_SENSE;
@@ -37,6 +35,7 @@ public class SparqlQueryBuilder {
 
     public static String triple(String subject, String predicate, String object)  { return subject + " " + predicate + " " + object + " .\n"; }
 
+    public static String filter(String filterObject, String query) { return "FILTER regex("+filterObject+", '"+query+"', 'i').\n"; }
 
     public static String searchQuery(String object,
                                String searchField,
@@ -51,6 +50,7 @@ public class SparqlQueryBuilder {
         }
         return " GRAPH "+ graphName + "\n{\n" + graphQuery + "}\n";
     }
+
     public static String bind(String bindQuery, String as) { return "BIND("+bindQuery+" as " + as + ") .\n";}
     public static String union(String... graphs) {
         StringBuilder unionString = new StringBuilder();

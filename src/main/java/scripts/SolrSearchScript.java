@@ -47,7 +47,7 @@ public class SolrSearchScript {
 
         SearchRequest searchRequest1 = createSearchRequest("velnias", SearchField.DEFINITION, SearchPredicate.OR);
         SearchRequest searchRequest2 = createSearchRequest("velnias", SearchField.LABEL, SearchPredicate.OR);
-        SearchRequest semanticRequest1 = createSearchRequest("velnias", SearchField.DEFINITION, allOptionsTrueWithIndexes);
+        SearchRequest semanticRequest1 = createSearchRequest("velnias", SearchField.LABEL, allOptionsTrueWithoutIndexes);
         SearchRequest semanticRequest2 = createSearchRequest("velnias", SearchField.LABEL, allOptionsTrueWithIndexes);
 
         for(Map.Entry<String, GrpcClient> clientEntry : solrClients.entrySet()) {
