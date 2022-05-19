@@ -5,7 +5,7 @@ import commons.SearchResult;
 import org.bakalaurinis.search.SearchField;
 import org.bakalaurinis.search.SearchPredicate;
 import org.bakalaurinis.search.SearchRequest;
-import org.bakalaurinis.search.WithSynonyms;
+import org.bakalaurinis.search.SemanticSearchOptions;
 import org.javatuples.Triplet;
 
 import java.io.IOException;
@@ -21,10 +21,18 @@ public class SolrSearchScript {
 
         ExcelSpreadsheet excelSpreadsheet = new ExcelSpreadsheet(fileLocation);
 
-        WithSynonyms withAllQueries = WithSynonyms.newBuilder()
-                .setSynonyms(true)
-                .setIsSynonym(true)
-                .setQuerySynonyms(true)
+        SemanticSearchOptions allOptionsTrueWithIndexes = SemanticSearchOptions.newBuilder()
+                .setSearchWithSynonyms(true)
+                .setSearchWithIsSynonym(true)
+                .setSearchWithQuerySynonyms(true)
+                .setUseIndexes(true)
+                .build();
+
+        SemanticSearchOptions allOptionsTrueWithoutIndexes = SemanticSearchOptions.newBuilder()
+                .setSearchWithSynonyms(true)
+                .setSearchWithIsSynonym(true)
+                .setSearchWithQuerySynonyms(true)
+                .setUseIndexes(false)
                 .build();
 
         GrpcClient tfidfClient = new GrpcClient(5540);
@@ -39,8 +47,8 @@ public class SolrSearchScript {
 
         SearchRequest searchRequest1 = createSearchRequest("velnias", SearchField.DEFINITION, SearchPredicate.OR);
         SearchRequest searchRequest2 = createSearchRequest("velnias", SearchField.LABEL, SearchPredicate.OR);
-        SearchRequest semanticRequest1 = createSearchRequest("velnias", SearchField.DEFINITION, withAllQueries);
-        SearchRequest semanticRequest2 = createSearchRequest("velnias", SearchField.LABEL, withAllQueries);
+        SearchRequest semanticRequest1 = createSearchRequest("velnias", SearchField.DEFINITION, allOptionsTrueWithIndexes);
+        SearchRequest semanticRequest2 = createSearchRequest("velnias", SearchField.LABEL, allOptionsTrueWithIndexes);
 
         for(Map.Entry<String, GrpcClient> clientEntry : solrClients.entrySet()) {
             GrpcClient client = clientEntry.getValue();

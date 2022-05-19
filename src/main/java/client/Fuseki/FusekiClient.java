@@ -6,7 +6,7 @@ import org.apache.jena.rdfconnection.RDFConnection;
 import org.apache.jena.rdfconnection.RDFConnectionFuseki;
 import org.apache.jena.rdfconnection.RDFConnectionRemoteBuilder;
 import org.bakalaurinis.search.SearchField;
-import org.bakalaurinis.search.WithSynonyms;
+import org.bakalaurinis.search.SemanticSearchOptions;
 import org.javatuples.Pair;
 
 import java.util.*;
@@ -43,20 +43,20 @@ public class FusekiClient {
         );
     }
 
-    private String makeLabelQuerySelectString(String query, WithSynonyms withSynonyms) {
+    private String makeLabelQuerySelectString(String query, SemanticSearchOptions searchOptions) {
 
         List<String> graphs = new ArrayList<>();
         String mainGraph = searchLabelQuery(query);
         graphs.add(mainGraph);
-        if(withSynonyms.getSynonyms()){
+        if(searchOptions.getSearchWithSynonyms()){
             String graph = searchLabelWithSynonymsQuery(query);
             graphs.add(graph);
         }
-        if(withSynonyms.getIsSynonym()){
+        if(searchOptions.getSearchWithIsSynonym()){
             String graph = searchLabelIsSynonymsQuery(query);
             graphs.add(graph);
         }
-        if(withSynonyms.getQuerySynonyms()){
+        if(searchOptions.getSearchWithQuerySynonyms()){
             String graph = searchSynonymsForLabel(query);
             graphs.add(graph);
         }
@@ -69,23 +69,23 @@ public class FusekiClient {
         return queryString ;
     }
 
-    private String makeDefinitionQuerySelectString(String query, WithSynonyms withSynonyms) {
+    private String makeDefinitionQuerySelectString(String query, SemanticSearchOptions searchOptions) {
         List<String> graphs = new ArrayList<>();
 
         String mainGraph = searchDefinitionQuery(query);
         graphs.add(mainGraph);
 
-        if(withSynonyms.getSynonyms()) {
+        if(searchOptions.getSearchWithSynonyms()) {
             String graph = searchDefinitionWithSynonymsQuery(query);
             graphs.add(graph);
         }
 
-        if(withSynonyms.getIsSynonym()) {
+        if(searchOptions.getSearchWithIsSynonym()) {
             String graph = searchDefinitionIsSynonymsQuery(query);
             graphs.add(graph);
         }
 
-        if(withSynonyms.getQuerySynonyms()) {
+        if(searchOptions.getSearchWithQuerySynonyms()) {
             String graph = searchSynonymsForDefinition(query);
             graphs.add(graph);
         }
@@ -98,12 +98,12 @@ public class FusekiClient {
         return queryString;
     }
 
-    public Pair<Long, List<SearchResult>> execSelectAndProcess(String query, SearchField searchField, WithSynonyms withSynonyms){
+    public Pair<Long, List<SearchResult>> execSelectAndProcess(String query, SearchField searchField, SemanticSearchOptions searchOptions){
         switch(searchField){
             case LABEL:
-                return searchLabel(query, withSynonyms);
+                return searchLabel(query, searchOptions);
             case DEFINITION:
-                return searchDefinition(query, withSynonyms);
+                return searchDefinition(query, searchOptions);
             default:
                 throw new RuntimeException("Blogas paieškos laukas!");
         }
@@ -155,13 +155,13 @@ public class FusekiClient {
         }
     }
 
-    private Pair<Long, List<SearchResult>> searchLabel(String query, WithSynonyms withSynonyms) {
-            Query q = QueryFactory.create(makePrefixString(prefixes) + makeLabelQuerySelectString(query, withSynonyms));
+    private Pair<Long, List<SearchResult>> searchLabel(String query, SemanticSearchOptions searchOptions) {
+            Query q = QueryFactory.create(makePrefixString(prefixes) + makeLabelQuerySelectString(query, searchOptions));
             return getSearchResultsFromQuery(q);
         }
 
-    private Pair<Long, List<SearchResult>> searchDefinition(String query, WithSynonyms withSynonyms) {
-        Query q = QueryFactory.create(makePrefixString(prefixes) + makeDefinitionQuerySelectString(query, withSynonyms));
+    private Pair<Long, List<SearchResult>> searchDefinition(String query, SemanticSearchOptions searchOptions) {
+        Query q = QueryFactory.create(makePrefixString(prefixes) + makeDefinitionQuerySelectString(query, searchOptions));
         return getSearchResultsFromQuery(q);
     }
 

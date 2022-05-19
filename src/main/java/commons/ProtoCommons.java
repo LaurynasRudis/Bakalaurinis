@@ -38,11 +38,11 @@ public class ProtoCommons {
                 .build();
     }
 
-    public static SearchRequest createSearchRequest(String query, SearchField searchField, WithSynonyms withSynonyms) {
+    public static SearchRequest createSearchRequest(String query, SearchField searchField, SemanticSearchOptions searchOptions) {
         return SearchRequest.newBuilder()
                 .setQuery(query)
                 .setSearchField(searchField)
-                .setWithSynonym(withSynonyms)
+                .setWithSynonym(searchOptions)
                 .build();
     }
 }
