@@ -1,11 +1,19 @@
 package server;
 
 import client.SolrClient;
+import com.google.protobuf.Any;
+import com.google.rpc.Code;
+import com.google.rpc.ErrorInfo;
+import commons.SearchResult;
+import io.grpc.protobuf.StatusProto;
 import io.grpc.stub.StreamObserver;
 import ontology.OntologyModel;
-import org.tutorial.search.*;
+import org.bakalaurinis.search.*;
+import org.javatuples.Pair;
 
-import java.util.Map;
+import java.util.List;
+
+import static commons.ProtoCommons.buildSearchResponse;
 
 public class SearchServiceImpl extends SearchServiceGrpc.SearchServiceImplBase {
 
@@ -22,18 +30,29 @@ public class SearchServiceImpl extends SearchServiceGrpc.SearchServiceImplBase {
             StreamObserver<SearchResponse> responseStreamObserver
     ) {
         String searchText = searchRequest.getQuery();
+        String searchField = searchRequest.getSearchField().toString();
+        SearchPredicate searchPredicate = searchRequest.getSearchPredicate();
+        String searchPredicateText = "";
+        switch(searchPredicate) {
+            case OR:
+                searchPredicateText = "OR";
+                break;
+            case AND:
+                searchPredicateText = "AND";
+                break;
+            default:
+                com.google.rpc.Status status = com.google.rpc.Status.newBuilder()
+                        .setCode(Code.INVALID_ARGUMENT.getNumber())
+                        .setMessage("Incorrect or unset search predicate")
+                        .addDetails(Any.pack(ErrorInfo.newBuilder()
+                                .setReason("Bad request")
+                                .build())).build();
+                responseStreamObserver.onError(StatusProto.toStatusRuntimeException(status));
+        }
         try {
-            long start = System.currentTimeMillis();
-            Map<String, String> s = solrClient.query(searchText);
-            long stop = System.currentTimeMillis();
-            SearchResponse.Builder response = SearchResponse.newBuilder();
-            int is = 0;
-            for(Map.Entry<String, String> i : s.entrySet()) {
-                response.addSearchResults(Result.newBuilder().setLabel(i.getValue()));
-            }
-            long time = stop - start;
-            System.out.println(time +" ms");
-            responseStreamObserver.onNext(response.build());
+            Pair<Long, List<SearchResult>> queryTimeAndSearchResults = solrClient.query(searchText, searchField, searchPredicateText);
+            SearchResponse response = buildSearchResponse(queryTimeAndSearchResults);
+            responseStreamObserver.onNext(response);
             responseStreamObserver.onCompleted();
         } catch (Exception e) {
             System.out.println(e.getMessage());

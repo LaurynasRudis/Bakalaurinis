@@ -1,18 +1,39 @@
 syntax = "proto3";
 option java_multiple_files = true;
-package org.tutorial.search;
+package org.bakalaurinis.search;
+
+enum SearchPredicate {
+  UNKNOWN_PREDICATE = 0;
+  OR = 1;
+  AND = 2;
+}
+
+enum SearchField {
+  UNKNOWN_FIELD = 0;
+  LABEL = 1;
+  DEFINITION = 2;
+}
+
+message SemanticSearchOptions {
+  bool search_with_synonyms = 1 ;
+  bool search_with_is_synonym = 2;
+  bool search_with_query_synonyms = 3;
+  bool use_indexes = 4;
+}
 
 message SearchRequest {
   string query = 1;
-  enum SearchField {
-    LABEL = 0;
-    DEFINITION = 1;
-  }
   SearchField search_field = 2;
+  oneof search_option {
+    SearchPredicate search_predicate = 3;
+    SemanticSearchOptions with_synonym = 4;
+  }
 }
 
 message SearchResponse {
-  repeated Result searchResults = 1;
+  repeated Result search_results = 1;
+  float query_time = 2;
+  int32 result_count = 3;
 }
 
 message Result {
@@ -22,14 +43,11 @@ message Result {
   repeated string sense_example = 4;
   string lemma = 5;
   repeated string definition = 6;
+  string score = 7;
 }
 
 message IndexRequest {
   string fileLocation = 1;
-}
-
-message SemanticSearchIndexRequest {
-  string databaseName = 1;
 }
 
 message IndexResponse {
@@ -39,4 +57,3 @@ service SearchService {
   rpc search(SearchRequest) returns (SearchResponse);
   rpc index(IndexRequest) returns (IndexResponse);
 }
-

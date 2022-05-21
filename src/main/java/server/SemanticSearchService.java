@@ -1,10 +1,15 @@
 package server;
 
-import client.FusekiClient;
+import client.Fuseki.FusekiClient;
+import commons.SearchResult;
 import io.grpc.stub.StreamObserver;
-import ontology.OntologyModel;
 import org.apache.commons.lang.NotImplementedException;
-import org.tutorial.search.*;
+import org.bakalaurinis.search.*;
+import org.javatuples.Pair;
+
+import java.util.List;
+
+import static commons.ProtoCommons.buildSearchResponse;
 
 public class SemanticSearchService extends SearchServiceGrpc.SearchServiceImplBase {
 
@@ -19,19 +24,12 @@ public class SemanticSearchService extends SearchServiceGrpc.SearchServiceImplBa
             StreamObserver<SearchResponse> responseStreamObserver
     ) {
         String searchQuery = searchRequest.getQuery();
-        SearchRequest.SearchField searchField = searchRequest.getSearchField();
-        SearchResponse.Builder response = SearchResponse.newBuilder();
-        switch (searchField) {
-            case LABEL:
-                fusekiClient.execSelectAndProcess(searchQuery);
-                break;
-            case DEFINITION:
-                fusekiClient.execSelectAndProcess(searchQuery);
-                break;
-            default:
-                throw new RuntimeException("Neteisingas paieškos laukas!");
-        }
-        responseStreamObserver.onNext(response.build());
+        SearchField searchField = searchRequest.getSearchField();
+        SemanticSearchOptions withSynonyms = searchRequest.getWithSynonym();
+        Pair<Long, List<SearchResult>> queryTimeAndSearchResults = fusekiClient.execSelectAndProcess(searchQuery, searchField, withSynonyms);
+        SearchResponse response = buildSearchResponse(queryTimeAndSearchResults);
+
+        responseStreamObserver.onNext(response);
         responseStreamObserver.onCompleted();
     }
 
