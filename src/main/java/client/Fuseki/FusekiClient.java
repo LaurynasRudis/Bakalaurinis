@@ -15,6 +15,7 @@ import java.util.*;
 
 import static client.Fuseki.DefinitionSearchQueries.*;
 import static client.Fuseki.LabelSearchQueries.*;
+//import static client.Fuseki.LemmaSearchQueries.*;
 import static commons.OntologyConstants.*;
 import static commons.SparqlQueryBuilder.SparqlQueryBuilder.*;
 
@@ -101,6 +102,36 @@ public class FusekiClient {
         System.out.println(queryString);
         return queryString;
     }
+
+//    private String makeLemmaQuerySelectString(String query, SemanticSearchOptions searchOptions) {
+//        UnionQueryBuilder unionQueryBuilder = new UnionQueryBuilder();
+//        boolean withIndex = searchOptions.getUseIndexes();
+//
+//        String mainGraph = searchLemmaQuery(query, withIndex);
+//        unionQueryBuilder.add(mainGraph);
+//
+//        if(searchOptions.getSearchWithSynonyms()) {
+//            String graph = searchLemmaWithSynonymsQuery(query, withIndex);
+//            unionQueryBuilder.add(graph);
+//        }
+//
+//        if(searchOptions.getSearchWithIsSynonym()) {
+//            String graph = searchLemmaIsSynonymsQuery(query, withIndex);
+//            unionQueryBuilder.add(graph);
+//        }
+//
+//        if(searchOptions.getSearchWithQuerySynonyms()) {
+//            String graph = searchSynonymsForLemma(query, withIndex);
+//            unionQueryBuilder.add(graph);
+//        }
+//
+//        String inside = unionQueryBuilder.build() + getInformationFromBLKZLexicalEntry();
+//
+//        String queryString =
+//                select(inside, selects);
+//        System.out.println(queryString);
+//        return queryString;
+//    }
 
     public Pair<Long, List<SearchResult>> execSelectAndProcess(String query, SearchField searchField, SemanticSearchOptions searchOptions){
         switch(searchField){

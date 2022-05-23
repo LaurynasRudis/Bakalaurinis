@@ -9,6 +9,7 @@ public final class OntologyConstants {
     public static final String HAS_SENSE_RELATION = "lmf:hasSenseRelation";
     public static final String SENSE_RELATED_TO = "lmf:senseRelatedTo";
     public static final String LABEL = "rdfs:label";
+    public static final String LEMMA = "lmf:Lemma";
     public static final String WRITTEN_FORM = "lmf:writtenForm";
     public static final String HAS_TEXT_REPRESENTATION = "lmf:hasTextRepresentation";
     public static final String HAS_DEFINITION = "lmf:hasDefinition";
