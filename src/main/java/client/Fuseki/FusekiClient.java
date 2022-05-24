@@ -26,7 +26,7 @@ public class FusekiClient {
 
     private RDFConnection service;
     private final Map<String, String> prefixes = new HashMap<>();
-    private final String[] selects = {"?id", "?(sample(str(?score)) as ?s)", "?label", "?lemma", "?definition", "?senseExample"};
+    private final String[] selects = {"?id", "(sample(str(?score)) as ?s)", "?label", "?lemma", "?definition", "?senseExample"};
 
     public FusekiClient() {
         prefixes.put("te", "http://www.w3.org/2006/time-entry#");

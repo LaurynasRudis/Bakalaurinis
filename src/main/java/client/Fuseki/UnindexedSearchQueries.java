@@ -39,7 +39,7 @@ public class UnindexedSearchQueries {
     private static String labelSearchToLexicalEntry(String query, String searchPredicate, String lexicalEntryName) {
         StringBuilder partOfQuery = new StringBuilder();
         String queryWithPredicates = queryWithPredicates(query, searchPredicate);
-        partOfQuery.append(triple(lexicalEntryName, TYPE, LEXICAL_ENTRY));
+        partOfQuery.append(triple(lexicalEntryName, RDF_TYPE, LEXICAL_ENTRY));
         partOfQuery.append(triple(lexicalEntryName, LABEL, "?labFilter"));
         partOfQuery.append(filter("?labFilter", queryWithPredicates));
         return partOfQuery.toString();
@@ -58,7 +58,7 @@ public class UnindexedSearchQueries {
     private static String definitionSearchToLexicalEntry(String query, String searchPredicate, String lexicalEntryName) {
         StringBuilder partOfQuery = new StringBuilder();
         String queryWithPredicates = queryWithPredicates(query, searchPredicate);
-        partOfQuery.append(triple("txt", TYPE, TEXT_REPRESENTATION));
+        partOfQuery.append(triple("txt", RDF_TYPE, TEXT_REPRESENTATION));
         partOfQuery.append(triple("txt", WRITTEN_FORM, "?writtenFormFilter"));
         partOfQuery.append(filter("?writtenFormFilter", queryWithPredicates));
         partOfQuery.append(triple("?txt", reverseCombinePredicates(HAS_TEXT_REPRESENTATION, HAS_DEFINITION, HAS_SENSE), lexicalEntryName));
@@ -68,17 +68,14 @@ public class UnindexedSearchQueries {
     private static String senseExampleSearchToLexicalEntry(String query, String searchPredicate, String lexicalEntryName) {
         StringBuilder partOfQuery = new StringBuilder();
         String queryWithPredicates = queryWithPredicates(query, searchPredicate);
-        partOfQuery.append(triple("?sen", TYPE, SENSE_EXAMPLE));
+        partOfQuery.append(triple("?sen", RDF_TYPE, SENSE_EXAMPLE));
         partOfQuery.append(triple("?sen", TEXT, "?textFilter"));
         partOfQuery.append(filter("?textFilter", queryWithPredicates));
         partOfQuery.append(triple("?sen", reverseCombinePredicates(HAS_SENSE_EXAMPLE, HAS_SENSE), lexicalEntryName));
         return partOfQuery.toString();
     }
 
-    public static String unindexSearchQuery(String query, SearchField searchField, String searchPredicate) {
-        UnionQueryBuilder unionQueryBuilder = new UnionQueryBuilder();
-        GraphQueryBuilder graphQueryBuilder = new GraphQueryBuilder(ZODYNAS_BE_AKCENTU);
-        String lexicalEntryName = "?id";
+    private static void appendToUnionQueryBuilderByField(UnionQueryBuilder unionQueryBuilder, String query, SearchField searchField, String searchPredicate, String lexicalEntryName) {
         switch(searchField) {
             case LABEL:
                 unionQueryBuilder.add(labelSearchToLexicalEntry(query, searchPredicate, lexicalEntryName));
@@ -97,9 +94,17 @@ public class UnindexedSearchQueries {
                 unionQueryBuilder.add(lemmaSearchToLexicalEntry(query, searchPredicate, lexicalEntryName));
                 unionQueryBuilder.add(definitionSearchToLexicalEntry(query, searchPredicate, lexicalEntryName));
                 unionQueryBuilder.add(senseExampleSearchToLexicalEntry(query, searchPredicate, lexicalEntryName));
+                break;
             default:
                 throw new RuntimeException("Blogas paieškos laukas!");
         }
+    }
+
+    public static String unindexSearchQuery(String query, SearchField searchField, String searchPredicate) {
+        UnionQueryBuilder unionQueryBuilder = new UnionQueryBuilder();
+        GraphQueryBuilder graphQueryBuilder = new GraphQueryBuilder(ZODYNAS_BE_AKCENTU);
+        String lexicalEntryName = "?id";
+        appendToUnionQueryBuilderByField(unionQueryBuilder,query, searchField, searchPredicate, lexicalEntryName);
         return graphQueryBuilder.add(unionQueryBuilder.build()).build();
     }
 
@@ -107,64 +112,26 @@ public class UnindexedSearchQueries {
         UnionQueryBuilder unionQueryBuilder = new UnionQueryBuilder();
         GraphQueryBuilder graphQueryBuilder = new GraphQueryBuilder(ZODYNAS_BE_AKCENTU);
         String lexicalEntryName = "?tempId";
-        switch(searchField) {
-            case LABEL:
-                unionQueryBuilder.add(labelSearchToLexicalEntry(query, searchPredicate, lexicalEntryName));
-                break;
-            case DEFINITION:
-                unionQueryBuilder.add(definitionSearchToLexicalEntry(query, searchPredicate, lexicalEntryName));
-                break;
-            case LEMMA:
-                unionQueryBuilder.add(lemmaSearchToLexicalEntry(query, searchPredicate, lexicalEntryName));
-                break;
-            case SENSE_EXAMPLE:
-                unionQueryBuilder.add(senseExampleSearchToLexicalEntry(query, searchPredicate, lexicalEntryName));
-                break;
-            case EVERYWHERE:
-                unionQueryBuilder.add(labelSearchToLexicalEntry(query, searchPredicate, lexicalEntryName));
-                unionQueryBuilder.add(lemmaSearchToLexicalEntry(query, searchPredicate, lexicalEntryName));
-                unionQueryBuilder.add(definitionSearchToLexicalEntry(query, searchPredicate, lexicalEntryName));
-                unionQueryBuilder.add(senseExampleSearchToLexicalEntry(query, searchPredicate,  lexicalEntryName));
-            default:
-                throw new RuntimeException("Blogas paieškos laukas!");
-        }
+        appendToUnionQueryBuilderByField(unionQueryBuilder,query, searchField, searchPredicate, lexicalEntryName);
+        graphQueryBuilder.add(unionQueryBuilder.build());
         graphQueryBuilder.add(triple("?tempId", LABEL, "?foundLabel"));
         graphQueryBuilder.add(synonymGraph(synonymPredicate));
         graphQueryBuilder.add(triple("?id", LABEL, "?labelTemp"));
         graphQueryBuilder.add(triple("?id", RDF_TYPE, LEXICAL_ENTRY));
-        return graphQueryBuilder.add(unionQueryBuilder.build()).build();
+        return graphQueryBuilder.build();
     }
 
     public static String unindexedSearchQueryWithIsSynonym(String query, SearchField searchField, String searchPredicate) {
         UnionQueryBuilder unionQueryBuilder = new UnionQueryBuilder();
         GraphQueryBuilder graphQueryBuilder = new GraphQueryBuilder(ZODYNAS_BE_AKCENTU);
         String lexicalEntryName = "?tempId";
-        switch(searchField) {
-            case LABEL:
-                unionQueryBuilder.add(labelSearchToLexicalEntry(query, searchPredicate, lexicalEntryName));
-                break;
-            case DEFINITION:
-                unionQueryBuilder.add(definitionSearchToLexicalEntry(query, searchPredicate, lexicalEntryName));
-                break;
-            case LEMMA:
-                unionQueryBuilder.add(lemmaSearchToLexicalEntry(query, searchPredicate, lexicalEntryName));
-                break;
-            case SENSE_EXAMPLE:
-                unionQueryBuilder.add(senseExampleSearchToLexicalEntry(query, searchPredicate, lexicalEntryName));
-                break;
-            case EVERYWHERE:
-                unionQueryBuilder.add(labelSearchToLexicalEntry(query, searchPredicate, lexicalEntryName));
-                unionQueryBuilder.add(lemmaSearchToLexicalEntry(query, searchPredicate, lexicalEntryName));
-                unionQueryBuilder.add(definitionSearchToLexicalEntry(query, searchPredicate, lexicalEntryName));
-                unionQueryBuilder.add(senseExampleSearchToLexicalEntry(query, searchPredicate,  lexicalEntryName));
-            default:
-                throw new RuntimeException("Blogas paieškos laukas!");
-        }
+        appendToUnionQueryBuilderByField(unionQueryBuilder,query, searchField, searchPredicate, lexicalEntryName);
+        graphQueryBuilder.add(unionQueryBuilder.build());
         graphQueryBuilder.add(triple("?tempId", LABEL, "?foundLabel"));
         graphQueryBuilder.add(synonymGraph(isSynonymPredicate));
         graphQueryBuilder.add(triple("?id", LABEL, "?labelTemp"));
         graphQueryBuilder.add(triple("?id", RDF_TYPE, LEXICAL_ENTRY));
-        return graphQueryBuilder.add(unionQueryBuilder.build()).build();
+        return graphQueryBuilder.build();
     }
 
     public static String searchSynonymsForUnindexedTriple(String query, SearchField searchField, String searchPredicate) {
@@ -173,32 +140,13 @@ public class UnindexedSearchQueries {
         UnionQueryBuilder unionQueryBuilder = new UnionQueryBuilder();
         UnionQueryBuilder unionSynonymQueryBuilder = new UnionQueryBuilder();
         String lexicalEntryName = "?tempId";
-        switch(searchField) {
-            case LABEL:
-                unionQueryBuilder.add(labelSearchToLexicalEntry(query, searchPredicate, lexicalEntryName));
-                break;
-            case DEFINITION:
-                unionQueryBuilder.add(definitionSearchToLexicalEntry(query, searchPredicate, lexicalEntryName));
-                break;
-            case LEMMA:
-                unionQueryBuilder.add(lemmaSearchToLexicalEntry(query, searchPredicate, lexicalEntryName));
-                break;
-            case SENSE_EXAMPLE:
-                unionQueryBuilder.add(senseExampleSearchToLexicalEntry(query, searchPredicate, lexicalEntryName));
-                break;
-            case EVERYWHERE:
-                unionQueryBuilder.add(labelSearchToLexicalEntry(query, searchPredicate, lexicalEntryName));
-                unionQueryBuilder.add(lemmaSearchToLexicalEntry(query, searchPredicate, lexicalEntryName));
-                unionQueryBuilder.add(definitionSearchToLexicalEntry(query, searchPredicate, lexicalEntryName));
-                unionQueryBuilder.add(senseExampleSearchToLexicalEntry(query, searchPredicate,  lexicalEntryName));
-            default:
-                throw new RuntimeException("Blogas paieškos laukas!");
-        }
+        appendToUnionQueryBuilderByField(unionQueryBuilder,query, searchField, searchPredicate, lexicalEntryName);
         unionSynonymQueryBuilder.add(triple("?tempId", synonymPredicate+"/"+ LABEL, "?querySynonym"));
         unionSynonymQueryBuilder.add(triple("?tempId", isSynonymPredicate+"/"+ LABEL, "?querySynonym"));
         synonymGraphQueryBuilder.add(unionQueryBuilder.build());
+        synonymGraphQueryBuilder.add(unionSynonymQueryBuilder.build());
         blkzGraphQueryBuilder.add(triple("?id", LABEL, "?querySynonym"));
-        blkzGraphQueryBuilder.add(triple("?id", TYPE, LEXICAL_ENTRY));
+        blkzGraphQueryBuilder.add(triple("?id", RDF_TYPE, LEXICAL_ENTRY));
         synonymGraphQueryBuilder.add(blkzGraphQueryBuilder.build());
         return synonymGraphQueryBuilder.build();
     }
