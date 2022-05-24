@@ -20,7 +20,7 @@ public class SparqlQueryBuilder {
         return prefixesString.toString();
     }
 
-    public static String select(String query, String... selects) {
+    public static String select(String query, String groupBy, String orderBy, String... selects) {
         StringBuilder selectBuilder = new StringBuilder();
         selectBuilder.append("SELECT DISTINCT ");
         for(String selectText : selects) {
@@ -30,6 +30,12 @@ public class SparqlQueryBuilder {
         selectBuilder.append("\nWHERE \n{\n");
         selectBuilder.append(query);
         selectBuilder.append(" } ");
+        selectBuilder.append("GROUP BY ");
+        selectBuilder.append(groupBy);
+        selectBuilder.append("\n");
+        selectBuilder.append("ORDER BY DESC(");
+        selectBuilder.append(orderBy);
+        selectBuilder.append(")");
         return selectBuilder.toString();
     }
 
@@ -42,6 +48,12 @@ public class SparqlQueryBuilder {
                                String searchQuery,
                                String extraParameters)
     { return object + " " + TEXT_QUERY + " ( " + searchField + " '" + searchQuery + "' " + extraParameters + " ) . \n" ; }
+
+    public static String searchQuery(String object,
+                                     String searchField,
+                                     String searchQuery)
+    { return object + " " + TEXT_QUERY + " ( " + searchField + " '" + searchQuery + "') . \n" ; }
+
 
     public static String graph(String graphName, String... queries) {
         StringBuilder graphQuery= new StringBuilder();

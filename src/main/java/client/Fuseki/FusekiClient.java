@@ -9,27 +9,26 @@ import org.apache.jena.rdfconnection.RDFConnectionFuseki;
 import org.apache.jena.rdfconnection.RDFConnectionRemoteBuilder;
 import org.bakalaurinis.search.SearchField;
 import org.bakalaurinis.search.SemanticSearchOptions;
+import org.bakalaurinis.search.SemanticSearchService;
 import org.javatuples.Pair;
 
 import java.util.*;
+import java.util.concurrent.Callable;
 
-import static client.Fuseki.DefinitionSearchQueries.*;
-import static client.Fuseki.LabelSearchQueries.*;
-//import static client.Fuseki.LemmaSearchQueries.*;
+import static client.Fuseki.EntitySearchQueries.*;
+import static client.Fuseki.TripleSearchQueries.*;
+import static client.Fuseki.UnindexedSearchQueries.*;
 import static commons.OntologyConstants.*;
 import static commons.SparqlQueryBuilder.SparqlQueryBuilder.*;
 
 
 public class FusekiClient {
 
-    private final RDFConnection service;
+    private RDFConnection service;
     private final Map<String, String> prefixes = new HashMap<>();
-    private final String[] selects = {"?id", "(str(?score) as ?s)", "?label", "?lemma", "?definition", "?senseExample"};
+    private final String[] selects = {"?id", "?(sample(str(?score)) as ?s)", "?label", "?lemma", "?definition", "?senseExample"};
 
-    public FusekiClient(String serviceName) {
-        String address = "http://localhost:3030";
-        RDFConnectionRemoteBuilder builder = RDFConnectionFuseki.create().destination(address +"/"+serviceName).queryEndpoint("sparql");
-        service = builder.build();
+    public FusekiClient() {
         prefixes.put("te", "http://www.w3.org/2006/time-entry#");
         prefixes.put("rdfs", "http://www.w3.org/2000/01/rdf-schema#");
         prefixes.put("rdf", "http://www.w3.org/1999/02/22-rdf-syntax-ns#");
@@ -46,104 +45,127 @@ public class FusekiClient {
         );
     }
 
-    private String makeLabelQuerySelectString(String query, SemanticSearchOptions searchOptions) {
-
-        UnionQueryBuilder unionQueryBuilder = new UnionQueryBuilder();
-        boolean withIndex = searchOptions.getUseIndexes();
-        String mainGraph = searchLabelQuery(query, withIndex);
-        unionQueryBuilder.add(mainGraph);
-        if(searchOptions.getSearchWithSynonyms()){
-            String graph = searchLabelWithSynonymsQuery(query, withIndex);
-            unionQueryBuilder.add(graph);
-        }
-        if(searchOptions.getSearchWithIsSynonym()){
-            String graph = searchLabelIsSynonymsQuery(query, withIndex);
-            unionQueryBuilder.add(graph);
-        }
-        if(searchOptions.getSearchWithQuerySynonyms()){
-            String graph = searchSynonymsForLabel(query, withIndex);
-            unionQueryBuilder.add(graph);
-        }
-
-        String inside = unionQueryBuilder.build() + getInformationFromBLKZLexicalEntry() ;
-
-        String queryString =
-                select(inside, selects);
-        System.out.println(queryString);
-        return queryString ;
+    private void buildService(String serviceName) {
+        String address = "http://localhost:3030";
+        RDFConnectionRemoteBuilder builder = RDFConnectionFuseki.create().destination(address +"/"+serviceName).queryEndpoint("sparql");
+        service = builder.build();
     }
 
-    private String makeDefinitionQuerySelectString(String query, SemanticSearchOptions searchOptions) {
+    private String makeEntityQuerySelectString(String query, SemanticSearchOptions searchOptions, String searchPredicate, SearchField searchField) {
         UnionQueryBuilder unionQueryBuilder = new UnionQueryBuilder();
-        boolean withIndex = searchOptions.getUseIndexes();
-
-        String mainGraph = searchDefinitionQuery(query, withIndex);
+        String mainGraph = entitySearchQueries(query, searchPredicate, searchField);
         unionQueryBuilder.add(mainGraph);
 
         if(searchOptions.getSearchWithSynonyms()) {
-            String graph = searchDefinitionWithSynonymsQuery(query, withIndex);
+            String graph = entitySearchQueriesWithSynonym(query, searchPredicate, searchField);
             unionQueryBuilder.add(graph);
         }
 
         if(searchOptions.getSearchWithIsSynonym()) {
-            String graph = searchDefinitionIsSynonymsQuery(query, withIndex);
+            String graph = entitySearchQueriesWithIsSynonym(query, searchPredicate, searchField);
             unionQueryBuilder.add(graph);
         }
 
         if(searchOptions.getSearchWithQuerySynonyms()) {
-            String graph = searchSynonymsForDefinition(query, withIndex);
+            String graph = searchSynonymsForEntity(query, searchPredicate, searchField);
             unionQueryBuilder.add(graph);
         }
 
         String inside = unionQueryBuilder.build() + getInformationFromBLKZLexicalEntry();
 
         String queryString =
-                select(inside, selects);
+                select(inside, "?id ?label ?lemma ?definition ?senseExample", "?s", selects);
         System.out.println(queryString);
         return queryString;
     }
 
-//    private String makeLemmaQuerySelectString(String query, SemanticSearchOptions searchOptions) {
-//        UnionQueryBuilder unionQueryBuilder = new UnionQueryBuilder();
-//        boolean withIndex = searchOptions.getUseIndexes();
-//
-//        String mainGraph = searchLemmaQuery(query, withIndex);
-//        unionQueryBuilder.add(mainGraph);
-//
-//        if(searchOptions.getSearchWithSynonyms()) {
-//            String graph = searchLemmaWithSynonymsQuery(query, withIndex);
-//            unionQueryBuilder.add(graph);
-//        }
-//
-//        if(searchOptions.getSearchWithIsSynonym()) {
-//            String graph = searchLemmaIsSynonymsQuery(query, withIndex);
-//            unionQueryBuilder.add(graph);
-//        }
-//
-//        if(searchOptions.getSearchWithQuerySynonyms()) {
-//            String graph = searchSynonymsForLemma(query, withIndex);
-//            unionQueryBuilder.add(graph);
-//        }
-//
-//        String inside = unionQueryBuilder.build() + getInformationFromBLKZLexicalEntry();
-//
-//        String queryString =
-//                select(inside, selects);
-//        System.out.println(queryString);
-//        return queryString;
-//    }
+    private String makeTripleQuerySelectString(String query, SemanticSearchOptions searchOptions, String searchPredicate, SearchField searchField) {
+        UnionQueryBuilder unionQueryBuilder = new UnionQueryBuilder();
+        String mainGraph = tripleSearchQuery(query, searchField, searchPredicate);
+        unionQueryBuilder.add(mainGraph);
 
-    public Pair<Long, List<SearchResult>> execSelectAndProcess(String query, SearchField searchField, SemanticSearchOptions searchOptions){
-        switch(searchField){
-            case LABEL:
-                return searchLabel(query, searchOptions);
-            case DEFINITION:
-                return searchDefinition(query, searchOptions);
+        if(searchOptions.getSearchWithSynonyms()) {
+            String graph = tripleSearchQueryWithSynonym(query, searchField, searchPredicate);
+            unionQueryBuilder.add(graph);
+        }
+
+        if(searchOptions.getSearchWithIsSynonym()) {
+            String graph = tripleSearchQueryWithIsSynonym(query, searchField, searchPredicate);
+            unionQueryBuilder.add(graph);
+        }
+
+        if(searchOptions.getSearchWithQuerySynonyms()) {
+            String graph = searchSynonymsForTriple(query, searchField, searchPredicate);
+            unionQueryBuilder.add(graph);
+        }
+
+        String inside = unionQueryBuilder.build() + getInformationFromBLKZLexicalEntry();
+
+        String queryString =
+                select(inside, "?id ?label ?lemma ?definition ?senseExample", "?s", selects);
+        System.out.println(queryString);
+        return queryString;
+    }
+
+    private String makeUnindexedQuerySelectString(String query, SemanticSearchOptions searchOptions, String searchPredicate, SearchField searchField) {
+        UnionQueryBuilder unionQueryBuilder = new UnionQueryBuilder();
+        String mainGraph = unindexSearchQuery(query, searchField, searchPredicate);
+        unionQueryBuilder.add(mainGraph);
+
+        if(searchOptions.getSearchWithSynonyms()) {
+            String graph = unindexedSearchQueryWithSynonym(query, searchField, searchPredicate);
+            unionQueryBuilder.add(graph);
+        }
+
+        if(searchOptions.getSearchWithIsSynonym()) {
+            String graph = unindexedSearchQueryWithIsSynonym(query, searchField, searchPredicate);
+            unionQueryBuilder.add(graph);
+        }
+
+        if(searchOptions.getSearchWithQuerySynonyms()) {
+            String graph = searchSynonymsForUnindexedTriple(query, searchField, searchPredicate);
+            unionQueryBuilder.add(graph);
+        }
+
+        String inside = unionQueryBuilder.build() + getInformationFromBLKZLexicalEntry();
+
+        String queryString =
+                select(inside, "?id ?label ?lemma ?definition ?senseExample", "?s", selects);
+        System.out.println(queryString);
+        return queryString;
+    }
+
+    public Pair<Long, List<SearchResult>> execSelectAndProcess(String query, SearchField searchField, SemanticSearchOptions searchOptions, String searchPredicate){
+        SemanticSearchService searchService = searchOptions.getSemanticSearchService();
+        switch(searchService){
+            case BLKZ_UNINDEXED:
+                buildService("blkz_unindexed");
+                return searchUnindexed(query, searchOptions, searchPredicate, searchField);
+            case BLKZ_TRIPLE:
+                buildService("blkz_triple");
+                return searchTriple(query, searchOptions, searchPredicate, searchField);
+            case BLKZ_ENTITY:
+                buildService("blkz");
+                return searchEntity(query, searchOptions, searchPredicate, searchField);
             default:
-                throw new RuntimeException("Blogas paieškos laukas!");
+                throw new RuntimeException("Blogas paieskos serviso pasirinkimas!");
         }
     }
 
+    private Pair<Long, List<SearchResult>> searchTriple(String query, SemanticSearchOptions searchOptions, String searchPredicate, SearchField searchField) {
+        Query q = QueryFactory.create(makePrefixString(prefixes) + makeTripleQuerySelectString(query, searchOptions, searchPredicate, searchField));
+        return getSearchResultsFromQuery(q);
+    }
+
+    private Pair<Long, List<SearchResult>> searchUnindexed(String query, SemanticSearchOptions searchOptions, String searchPredicate, SearchField searchField) {
+        Query q = QueryFactory.create(makePrefixString(prefixes) + makeUnindexedQuerySelectString(query, searchOptions, searchPredicate, searchField));
+        return getSearchResultsFromQuery(q);
+    }
+
+    private Pair<Long, List<SearchResult>> searchEntity(String query, SemanticSearchOptions searchOptions, String searchPredicate, SearchField searchField) {
+        Query q = QueryFactory.create(makePrefixString(prefixes) + makeEntityQuerySelectString(query, searchOptions, searchPredicate, searchField));
+        return getSearchResultsFromQuery(q);
+    }
 
     private Pair<Long, List<SearchResult>> getSearchResultsFromQuery(Query query) {
         try {
@@ -188,16 +210,6 @@ public class FusekiClient {
             System.out.println("FAILED:" + e.getMessage());
             return new Pair<>(0L, List.of());
         }
-    }
-
-    private Pair<Long, List<SearchResult>> searchLabel(String query, SemanticSearchOptions searchOptions) {
-            Query q = QueryFactory.create(makePrefixString(prefixes) + makeLabelQuerySelectString(query, searchOptions));
-            return getSearchResultsFromQuery(q);
-        }
-
-    private Pair<Long, List<SearchResult>> searchDefinition(String query, SemanticSearchOptions searchOptions) {
-        Query q = QueryFactory.create(makePrefixString(prefixes) + makeDefinitionQuerySelectString(query, searchOptions));
-        return getSearchResultsFromQuery(q);
     }
 
 }

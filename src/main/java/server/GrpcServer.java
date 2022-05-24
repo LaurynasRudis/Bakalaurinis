@@ -16,7 +16,7 @@ public class GrpcServer {
         SolrClient solrClientTFIDF = new SolrClient("BLKZ_TF_IDF");
         SolrClient solrClientBM25 = new SolrClient("BLKZ_BM25");
         SolrClient solrClientDFR = new SolrClient("BLKZ_DFR");
-        FusekiClient fusekiClient = new FusekiClient("blkz");
+        FusekiClient fusekiClientLucene = new FusekiClient();
 
         Server serverTFIDF = ServerBuilder
                 .forPort(5540)
@@ -33,9 +33,9 @@ public class GrpcServer {
                 .addService(new SearchServiceImpl(solrClientDFR))
                 .build();
 
-        Server serverSemantic = ServerBuilder
+        Server serverFusekiLucene = ServerBuilder
                 .forPort(5543)
-                .addService(new SemanticSearchService(fusekiClient))
+                .addService(new SemanticSearchService(fusekiClientLucene))
                 .build();
 
         try {
@@ -48,13 +48,13 @@ public class GrpcServer {
             System.out.println("Starting DFR server...");
             serverDFR.start();
             System.out.println("Server DFR started!");
-            System.out.println("Starting Semantic server...");
-            serverSemantic.start();
-            System.out.println("Server Semantic started!");
+            System.out.println("Starting Fuseki Lucene server...");
+            serverFusekiLucene.start();
+            System.out.println("Server Fuseki Lucene started!");
             serverTFIDF.awaitTermination();
             serverBM25.awaitTermination();
             serverDFR.awaitTermination();
-            serverSemantic.awaitTermination();
+            serverFusekiLucene.awaitTermination();
         } catch (Exception e) {
             System.out.println(e.getMessage());
         } finally {

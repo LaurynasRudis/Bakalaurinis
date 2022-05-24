@@ -11,6 +11,7 @@ import org.apache.solr.client.solrj.response.UpdateResponse;
 import org.apache.solr.common.SolrDocument;
 import org.apache.solr.common.SolrDocumentList;
 import org.apache.solr.common.params.MapSolrParams;
+import org.bakalaurinis.search.SearchField;
 import org.javatuples.Pair;
 
 import java.io.IOException;
@@ -29,23 +30,52 @@ public class SolrClient {
         this.solrClient.setParser(new XMLResponseParser());
     }
 
-    public Pair<Long, List<SearchResult>> query(String searchText, String searchField, String searchPredicate) throws SolrServerException, IOException {
-        Map<String, String> queryParamMap = new HashMap<>();
-        String[] searchWords = searchText.split("\\s+");
-        String searchFieldUnaccented = searchField.toLowerCase()+"_unaccented";
-        StringBuilder queryTextBuilder = new StringBuilder();
-        for (String searchWord : searchWords) {
-            queryTextBuilder.append(searchFieldUnaccented);
-            queryTextBuilder.append(":");
-            queryTextBuilder.append(searchWord);
-            queryTextBuilder.append(" ");
-        }
-        queryParamMap.put("q", queryTextBuilder.toString());
+    private Map<String, String> fieldSearchParameters(String queryText, String searchPredicate) {
+        HashMap<String, String> queryParamMap = new HashMap<>();
+        queryParamMap.put("q", queryText);
         queryParamMap.put("q.op", searchPredicate);
         queryParamMap.put("fl", "*, score");
+        return queryParamMap;
+    }
+
+    private Map<String, String> dismaxQueryParameters(String queryText, String searchPredicate) {
+        HashMap<String, String> queryParamMap = new HashMap<>();
+        queryParamMap.put("q", queryText);
+        queryParamMap.put("q.op", searchPredicate);
+        queryParamMap.put("fl", "*, score");
+        queryParamMap.put("qf", "lemma_unaccented^5 definition_unaccented^2 label_unaccented^1 senseExample_unaccented^0.5");
+        queryParamMap.put("deftype", "dismax");
+        return queryParamMap;
+    }
+
+    public Pair<Long, List<SearchResult>> query(String searchText, SearchField searchField, String searchPredicate) throws SolrServerException, IOException {
+        String[] searchWords = searchText.split("\\s+");
+        Map<String, String> queryParamMap;
+        String fieldBoosting = "";
+        switch(searchField) {
+            case LABEL:
+                fieldBoosting = "^5";
+            case DEFINITION:
+                if(fieldBoosting.isBlank()) fieldBoosting = "^2";
+                StringBuilder queryTextBuilder = new StringBuilder();
+                String searchFieldUnaccented = searchField.toString().toLowerCase()+"_unaccented";
+                for (String searchWord : searchWords) {
+                    queryTextBuilder.append(searchFieldUnaccented);
+                    queryTextBuilder.append(":");
+                    queryTextBuilder.append(searchWord);
+                    queryTextBuilder.append(fieldBoosting);
+                    queryTextBuilder.append(" ");
+                }
+                queryParamMap = fieldSearchParameters(queryTextBuilder.toString(), searchPredicate);
+                break;
+            case EVERYWHERE:
+                queryParamMap = dismaxQueryParameters(searchText, searchPredicate);
+                break;
+            default:
+                throw new RuntimeException("Bad search field!");
+        }
         MapSolrParams queryParams = new MapSolrParams(queryParamMap);
         List<SearchResult> searchResults = new ArrayList<>();
-
 
         long startQuery = System.currentTimeMillis();
         QueryResponse response = solrClient.query(queryParams);
@@ -53,8 +83,8 @@ public class SolrClient {
         long queryTime = finishQuery - startQuery;
         SolrDocumentList results = response.getResults();
         for (SolrDocument result : results) {
-            String id = (String) result.getFieldValue("id");
-            String label = (String) result.getFieldValue("label");
+            String id = Objects.toString(result.getFieldValue("id"), "");
+            String label = Objects.toString(result.getFieldValue("label"),"");
             String lemma = (String) result.getFieldValue("lemma");
             List<String> senseExample = result.getFieldValues("senseExample").stream()
                     .map(object -> Objects.toString(object, ""))
