@@ -18,7 +18,6 @@ public class EntitySearchQueries {
         stringBuilder.append(searchWord);
         stringBuilder.append("^");
         stringBuilder.append(boosting);
-        stringBuilder.append(" ");
     }
 
     private static String entitySearchLuceneQuery(String query,
@@ -79,11 +78,11 @@ public class EntitySearchQueries {
                 break;
             case EVERYWHERE:
                 searchQueryBuilder.append(labelQueryBuilder);
-                searchQueryBuilder.append("OR");
+                searchQueryBuilder.append(" OR ");
                 searchQueryBuilder.append(lemmaQueryBuilder);
-                searchQueryBuilder.append("OR");
+                searchQueryBuilder.append(" OR ");
                 searchQueryBuilder.append(definitionQueryBuilder);
-                searchQueryBuilder.append("OR");
+                searchQueryBuilder.append(" OR ");
                 searchQueryBuilder.append(senseExampleQueryBuilder);
                 break;
             case UNKNOWN_FIELD:
@@ -168,7 +167,7 @@ public class EntitySearchQueries {
         unionQueryBuilder.add(triple("?tempId", isSynonymPredicate+"/"+ LABEL, "?querySynonym"));
         synonymGraphQueryBuilder.add(unionQueryBuilder.build());
         blkzGraphQueryBuilder.add(triple("?id", LABEL, "?querySynonym"));
-        blkzGraphQueryBuilder.add(triple("?id", TYPE, LEXICAL_ENTRY));
+        blkzGraphQueryBuilder.add(triple("?id", RDF_TYPE, LEXICAL_ENTRY));
         synonymGraphQueryBuilder.add(blkzGraphQueryBuilder.build());
         return synonymGraphQueryBuilder.build();
     }

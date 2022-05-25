@@ -33,9 +33,8 @@ public class SparqlQueryBuilder {
         selectBuilder.append("GROUP BY ");
         selectBuilder.append(groupBy);
         selectBuilder.append("\n");
-        selectBuilder.append("ORDER BY DESC(");
+        selectBuilder.append("ORDER BY ");
         selectBuilder.append(orderBy);
-        selectBuilder.append(")");
         return selectBuilder.toString();
     }
 

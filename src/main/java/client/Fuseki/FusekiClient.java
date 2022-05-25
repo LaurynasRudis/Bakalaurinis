@@ -26,7 +26,7 @@ public class FusekiClient {
 
     private RDFConnection service;
     private final Map<String, String> prefixes = new HashMap<>();
-    private final String[] selects = {"?id", "(sample(str(?score)) as ?s)", "?label", "?lemma", "?definition", "?senseExample"};
+    private final String[] selects = {"?id", "(sample(?score) as ?sc)", "(str(?sc) as ?s)", "?label", "?lemma", "?definition", "?senseExample"};
 
     public FusekiClient() {
         prefixes.put("te", "http://www.w3.org/2006/time-entry#");
@@ -74,7 +74,7 @@ public class FusekiClient {
         String inside = unionQueryBuilder.build() + getInformationFromBLKZLexicalEntry();
 
         String queryString =
-                select(inside, "?id ?label ?lemma ?definition ?senseExample", "?s", selects);
+                select(inside, "?id ?label ?lemma ?definition ?senseExample", "DESC(?sc) DESC(?id)", selects);
         System.out.println(queryString);
         return queryString;
     }
@@ -102,7 +102,7 @@ public class FusekiClient {
         String inside = unionQueryBuilder.build() + getInformationFromBLKZLexicalEntry();
 
         String queryString =
-                select(inside, "?id ?label ?lemma ?definition ?senseExample", "?s", selects);
+                select(inside, "?id ?label ?lemma ?definition ?senseExample", "DESC(?sc) DESC(?id)", selects);
         System.out.println(queryString);
         return queryString;
     }
@@ -130,7 +130,7 @@ public class FusekiClient {
         String inside = unionQueryBuilder.build() + getInformationFromBLKZLexicalEntry();
 
         String queryString =
-                select(inside, "?id ?label ?lemma ?definition ?senseExample", "?s", selects);
+                select(inside, "?id ?label ?lemma ?definition ?senseExample", "DESC(?id)", selects);
         System.out.println(queryString);
         return queryString;
     }

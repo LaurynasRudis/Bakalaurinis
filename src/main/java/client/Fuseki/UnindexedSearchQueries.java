@@ -58,8 +58,8 @@ public class UnindexedSearchQueries {
     private static String definitionSearchToLexicalEntry(String query, String searchPredicate, String lexicalEntryName) {
         StringBuilder partOfQuery = new StringBuilder();
         String queryWithPredicates = queryWithPredicates(query, searchPredicate);
-        partOfQuery.append(triple("txt", RDF_TYPE, TEXT_REPRESENTATION));
-        partOfQuery.append(triple("txt", WRITTEN_FORM, "?writtenFormFilter"));
+        partOfQuery.append(triple("?txt", RDF_TYPE, TEXT_REPRESENTATION));
+        partOfQuery.append(triple("?txt", WRITTEN_FORM, "?writtenFormFilter"));
         partOfQuery.append(filter("?writtenFormFilter", queryWithPredicates));
         partOfQuery.append(triple("?txt", reverseCombinePredicates(HAS_TEXT_REPRESENTATION, HAS_DEFINITION, HAS_SENSE), lexicalEntryName));
         return partOfQuery.toString();
