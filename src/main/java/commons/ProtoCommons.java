@@ -13,6 +13,7 @@ public class ProtoCommons {
         List<Result> results = new ArrayList<>();
         long queryTime = queryTimeAndSearchResults.getValue0();
         List<SearchResult> searchResults = queryTimeAndSearchResults.getValue1();
+
         for(SearchResult searchResult : searchResults) {
                     results.add(Result.newBuilder()
                             .setId(searchResult.getId())
@@ -23,6 +24,7 @@ public class ProtoCommons {
                             .setScore(searchResult.getScore())
                             .build());
         }
+
         return response
                 .addAllSearchResults(results)
                 .setQueryTime(queryTime)
@@ -34,6 +36,15 @@ public class ProtoCommons {
         return SearchRequest.newBuilder()
                 .setQuery(query)
                 .setSearchField(searchField)
+                .setSearchPredicate(searchPredicate)
+                .build();
+    }
+
+    public static SearchRequest createSearchRequest(String query, SearchField searchField, SearchPredicate searchPredicate, SemanticSearchOptions searchOptions) {
+        return SearchRequest.newBuilder()
+                .setQuery(query)
+                .setSearchField(searchField)
+                .setWithSynonym(searchOptions)
                 .setSearchPredicate(searchPredicate)
                 .build();
     }

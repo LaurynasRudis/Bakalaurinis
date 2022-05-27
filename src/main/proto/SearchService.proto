@@ -12,22 +12,30 @@ enum SearchField {
   UNKNOWN_FIELD = 0;
   LABEL = 1;
   DEFINITION = 2;
+  SENSE_EXAMPLE = 3;
+  LEMMA = 4;
+  EVERYWHERE = 5;
+}
+
+enum SemanticSearchService {
+  UNKNONW_FIELD = 0;
+  BLKZ_ENTITY = 1;
+  BLKZ_TRIPLE = 2;
+  BLKZ_UNINDEXED = 3;
 }
 
 message SemanticSearchOptions {
   bool search_with_synonyms = 1 ;
   bool search_with_is_synonym = 2;
   bool search_with_query_synonyms = 3;
-  bool use_indexes = 4;
+  SemanticSearchService semantic_search_service = 4;
 }
 
 message SearchRequest {
   string query = 1;
   SearchField search_field = 2;
-  oneof search_option {
-    SearchPredicate search_predicate = 3;
-    SemanticSearchOptions with_synonym = 4;
-  }
+  SearchPredicate search_predicate = 3;
+  SemanticSearchOptions with_synonym = 4;
 }
 
 message SearchResponse {

@@ -2,10 +2,7 @@ package scripts;
 
 import commons.ExcelSpreadsheet;
 import commons.SearchResult;
-import org.bakalaurinis.search.SearchField;
-import org.bakalaurinis.search.SearchPredicate;
-import org.bakalaurinis.search.SearchRequest;
-import org.bakalaurinis.search.SemanticSearchOptions;
+import org.bakalaurinis.search.*;
 import org.javatuples.Triplet;
 
 import java.io.IOException;
@@ -17,28 +14,32 @@ import static commons.ProtoCommons.createSearchRequest;
 
 public class SolrSearchScript {
     public static void main(String[] args) throws IOException {
-        String fileLocation = "test.xlsx";
+        String fileLocation = "rezultatai.xlsx";
+        String address = "localhost";
 
         ExcelSpreadsheet excelSpreadsheet = new ExcelSpreadsheet(fileLocation);
 
-        SemanticSearchOptions allOptionsTrueWithIndexes = SemanticSearchOptions.newBuilder()
-                .setSearchWithSynonyms(true)
-                .setSearchWithIsSynonym(true)
-                .setSearchWithQuerySynonyms(true)
-                .setUseIndexes(true)
+        SemanticSearchOptions.Builder allOptionsBase = SemanticSearchOptions.newBuilder()
+                .setSearchWithSynonyms(false)
+                .setSearchWithIsSynonym(false)
+                .setSearchWithQuerySynonyms(true);
+
+        SemanticSearchOptions allOptionsTrueWithIndexesEntity = allOptionsBase
+                .setSemanticSearchService(SemanticSearchService.BLKZ_ENTITY)
                 .build();
 
-        SemanticSearchOptions allOptionsTrueWithoutIndexes = SemanticSearchOptions.newBuilder()
-                .setSearchWithSynonyms(true)
-                .setSearchWithIsSynonym(true)
-                .setSearchWithQuerySynonyms(true)
-                .setUseIndexes(false)
+        SemanticSearchOptions allOptionsTrueWithIndexesTriple = allOptionsBase
+                .setSemanticSearchService(SemanticSearchService.BLKZ_TRIPLE)
                 .build();
 
-        GrpcClient tfidfClient = new GrpcClient(5540);
-        GrpcClient bm25Client = new GrpcClient(5541);
-        GrpcClient dfrClient = new GrpcClient(5542);
-        GrpcClient semanticClient = new GrpcClient(5543);
+        SemanticSearchOptions allOptionsTrueWithoutIndexes = allOptionsBase
+                .setSemanticSearchService(SemanticSearchService.BLKZ_UNINDEXED)
+                .build();
+
+        GrpcClient tfidfClient = new GrpcClient(address, 5540);
+        GrpcClient bm25Client = new GrpcClient(address,5541);
+        GrpcClient dfrClient = new GrpcClient(address, 5542);
+        GrpcClient fusekiClient = new GrpcClient(address, 5543);
 
         Map<String, GrpcClient> solrClients = new HashMap<>();
         solrClients.put("tfidf", tfidfClient);
@@ -46,9 +47,10 @@ public class SolrSearchScript {
         solrClients.put("dfr", dfrClient);
 
         SearchRequest searchRequest1 = createSearchRequest("velnias", SearchField.DEFINITION, SearchPredicate.OR);
-        SearchRequest searchRequest2 = createSearchRequest("velnias", SearchField.LABEL, SearchPredicate.OR);
-        SearchRequest semanticRequest1 = createSearchRequest("velnias", SearchField.LABEL, allOptionsTrueWithoutIndexes);
-        SearchRequest semanticRequest2 = createSearchRequest("velnias", SearchField.LABEL, allOptionsTrueWithIndexes);
+        SearchRequest searchRequest2 = createSearchRequest("velnias", SearchField.EVERYWHERE, SearchPredicate.OR);
+        SearchRequest semanticRequest1 = createSearchRequest("velnias", SearchField.EVERYWHERE, SearchPredicate.OR, allOptionsTrueWithoutIndexes);
+        SearchRequest semanticRequest2 = createSearchRequest("velnias", SearchField.EVERYWHERE, SearchPredicate.OR, allOptionsTrueWithIndexesTriple);
+        SearchRequest semanticRequest3 = createSearchRequest("velnias", SearchField.EVERYWHERE, SearchPredicate.OR, allOptionsTrueWithIndexesEntity);
 
         for(Map.Entry<String, GrpcClient> clientEntry : solrClients.entrySet()) {
             GrpcClient client = clientEntry.getValue();
@@ -59,9 +61,11 @@ public class SolrSearchScript {
             excelSpreadsheet.writeSearchResults(clientName+"2", searchResults2);
         }
 
-        Triplet<Long, List<SearchResult>, Integer> searchResults1 = semanticClient.search(semanticRequest1);
-        excelSpreadsheet.writeSearchResults("semantic1", searchResults1);
-        Triplet<Long, List<SearchResult>, Integer> searchResults2 = semanticClient.search(semanticRequest2);
-        excelSpreadsheet.writeSearchResults("semantic2", searchResults2);
+//        Triplet<Long, List<SearchResult>, Integer> searchResults1 = fusekiClient.search(semanticRequest1);
+//        excelSpreadsheet.writeSearchResults("semantic_unindexed", searchResults1);
+//        Triplet<Long, List<SearchResult>, Integer> searchResults2 = fusekiClient.search(semanticRequest2);
+//        excelSpreadsheet.writeSearchResults("semantic_triple", searchResults2);
+//        Triplet<Long, List<SearchResult>, Integer> searchResults3 = fusekiClient.search(semanticRequest3);
+//        excelSpreadsheet.writeSearchResults("semantic_entity", searchResults3);
     }
 }

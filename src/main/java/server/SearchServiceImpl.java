@@ -30,7 +30,7 @@ public class SearchServiceImpl extends SearchServiceGrpc.SearchServiceImplBase {
             StreamObserver<SearchResponse> responseStreamObserver
     ) {
         String searchText = searchRequest.getQuery();
-        String searchField = searchRequest.getSearchField().toString();
+        SearchField searchField = searchRequest.getSearchField();
         SearchPredicate searchPredicate = searchRequest.getSearchPredicate();
         String searchPredicateText = "";
         switch(searchPredicate) {

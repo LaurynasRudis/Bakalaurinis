@@ -9,17 +9,17 @@ public final class OntologyConstants {
     public static final String HAS_SENSE_RELATION = "lmf:hasSenseRelation";
     public static final String SENSE_RELATED_TO = "lmf:senseRelatedTo";
     public static final String LABEL = "rdfs:label";
+    public static final String LEMMA = "lmf:Lemma";
     public static final String WRITTEN_FORM = "lmf:writtenForm";
     public static final String HAS_TEXT_REPRESENTATION = "lmf:hasTextRepresentation";
     public static final String HAS_DEFINITION = "lmf:hasDefinition";
     public static final String HAS_SENSE_EXAMPLE = "lmf:hasSenseExample";
     public static final String HAS_EQUIVALENT = "lmf:hasEquivalent";
+    public static final String TEXT = "lmf:text";
     public static final String TYPE = "lmf:type";
     public static final String RDF_TYPE = "rdf:type";
     public static final String TEXT_QUERY = "text:query";
     public static final String LEXICAL_ENTRY = "lmf:LexicalEntry";
     public static final String TEXT_REPRESENTATION = "lmf:TextRepresentation";
-    public static final double DIRECT_SYNONYM_SCORE_REDUCTION = 0.5;
-    public static final double QUERY_SYNONYM_SCORE_REDUCTION = 3;
-
+    public static final String SENSE_EXAMPLE = "lmf:SenseExample";
 }

@@ -3,10 +3,7 @@ package ontology;
 import org.apache.jena.ontology.Individual;
 import org.apache.jena.ontology.OntClass;
 import org.apache.jena.ontology.OntModel;
-import org.apache.jena.rdf.model.ModelFactory;
-import org.apache.jena.rdf.model.Property;
-import org.apache.jena.rdf.model.Resource;
-import org.apache.jena.rdf.model.StmtIterator;
+import org.apache.jena.rdf.model.*;
 import org.apache.jena.util.iterator.ExtendedIterator;
 
 import java.io.FileInputStream;
@@ -26,6 +23,7 @@ public class OntologyModel {
     private Property hasSenseExample;
     private Property writtenForm;
     private Property text;
+    private String graph ;
 
 
     public OntologyModel(String inputFileName) {
@@ -42,10 +40,26 @@ public class OntologyModel {
             this.hasSenseExample = model.createProperty(ontologyUri, "hasSenseExample");
             this.writtenForm = model.createProperty(ontologyUri, "writtenForm");
             this.text = model.createProperty(ontologyUri, "text");
+            this.graph = "";
         }
         catch (Exception e) {
             System.out.println("Caught exception: " + e.getMessage());
         }
+    }
+
+    public OntologyModel(Model model, String graphName) {
+        OntModel ontologyModel = ModelFactory.createOntologyModel();
+        ontologyModel.add(model);
+        this.lexicalEntryClass = ontologyModel.getOntClass(lexicalEntryUri);
+        this.model = ontologyModel;
+        this.hasLemma = ontologyModel.createProperty(ontologyUri, "hasLemma");
+        this.hasSense = ontologyModel.createProperty(ontologyUri, "hasSense");
+        this.hasDefinition = ontologyModel.createProperty(ontologyUri, "hasDefinition");
+        this.hasTextRepresentation = ontologyModel.createProperty(ontologyUri, "hasTextRepresentation");
+        this.hasSenseExample = ontologyModel.createProperty(ontologyUri, "hasSenseExample");
+        this.writtenForm = ontologyModel.createProperty(ontologyUri, "writtenForm");
+        this.text = ontologyModel.createProperty(ontologyUri, "text");
+        this.graph = graphName;
     }
 
     public OntModel getModel() { return model; }
@@ -118,5 +132,21 @@ public class OntologyModel {
             dictionaryValues.add(new DictionaryValue(id, label, senseExamples, lemma, definitions));
         }
         return dictionaryValues;
+    }
+
+    public List<RDFIndexValue> getRDFIndexValues() {
+        ExtendedIterator<Individual> lexicalEntryListIterator = getLexicalEntryIndividualList();
+        List<RDFIndexValue> rdfIndexValues = new ArrayList<>();
+        while (lexicalEntryListIterator.hasNext()) {
+            Individual individual = lexicalEntryListIterator.next();
+            String uri = individual.getURI();
+            String label = individual.getLabel(null);
+            List<String> senseExamples = findSenseExamples(individual);
+            String lemma = findLemma(individual);
+            List<String> definitions = findDefinitions(individual);
+            String graph = this.graph;
+            rdfIndexValues.add(new RDFIndexValue(uri, label, senseExamples, lemma, definitions, graph));
+        }
+        return rdfIndexValues;
     }
 }

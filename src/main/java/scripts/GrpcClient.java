@@ -15,14 +15,11 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 public class GrpcClient {
-    private int port;
-    private final String address = "localhost";
-    private ManagedChannel channel;
-    private SearchServiceGrpc.SearchServiceBlockingStub stub;
+    private final SearchServiceGrpc.SearchServiceBlockingStub stub;
 
 
-    public GrpcClient(int port) {
-        channel = ManagedChannelBuilder
+    public GrpcClient(String address, int port) {
+        ManagedChannel channel = ManagedChannelBuilder
                 .forAddress(address, port)
                 .maxInboundMessageSize(6005000)
                 .usePlaintext()
